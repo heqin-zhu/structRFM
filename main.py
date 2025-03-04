@@ -1,5 +1,5 @@
-from src.NucleoLM.pretrain import pretrain
+from src.NucleoLM.pretrain import run_pretrain
 
 
 if __name__ == '__main__':
-    pretrain()
+    run_pretrain()
