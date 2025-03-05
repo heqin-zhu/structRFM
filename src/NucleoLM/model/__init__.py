@@ -1,1 +1,1 @@
-from modeling_RNALM import *
+from .modeling_RNALM import *

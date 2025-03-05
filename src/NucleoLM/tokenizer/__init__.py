@@ -1,1 +1,1 @@
-from get_tokenizer import *
+from .get_tokenizer import *

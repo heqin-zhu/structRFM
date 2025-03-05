@@ -1,3 +1,4 @@
+import torch.nn as nn
 from transformers import LlamaConfig, BertConfig
 from transformers import LlamaForCausalLM, LlamaModel, BertModel
 
