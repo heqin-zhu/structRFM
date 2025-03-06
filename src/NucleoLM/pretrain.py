@@ -5,13 +5,13 @@ from functools import partial
 
 import torch
 import tensorboard
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
 from transformers import LlamaForCausalLM, LlamaModel
 
 from .tokenizer import get_tokenizer_by_tag, preprocess
-from .model import get_llama_model, get_bert_model
+from .model import get_bert_model, get_llama_model, get_llama_causal_model
 
 
 def set_seed(seed, deterministic=True):
@@ -26,20 +26,55 @@ def set_seed(seed, deterministic=True):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='RNA LM')
-    parser.add_argument('--data_path', type=str, required=True)
+    parser.add_argument('--run_name', type=str, required=True)
+    # Data args
+    parser.add_argument('--data_path', type=str, default='../RNAcentral/RNAcentral_BPfold_SS')
     parser.add_argument('--tag', type=str, choices=['mlm', 'ar'], default='mlm')
     parser.add_argument('--max_length', type=int, default=512, help='Max length of tokens')
+    parser.add_argument('--seed', type=int, default=42)
+
+    # Model args
     parser.add_argument('--dim', type=int, default=768, help='hidden dim')
     parser.add_argument('--layer', type=int, default=12)
     parser.add_argument('--from_pretrained', type=str, help='for model')
     parser.add_argument('--resume_from_checkpoint', type=str, help='for trainer')
+
+    # Training args
+    parser.add_argument('--lr', type=float, default=0.0003, help='learning rate')
+    parser.add_argument('--epoch', type=int, default=50, help='learning rate')
+    parser.add_argument('--batch_size', type=int, default=32)
     args = parser.parse_args()
     return args
 
 
+def get_dataset(data_path, tokenizer, tag):
+    ## load_dataset
+    ## path options:  json, csv, text, panda, imagefolder
+    # dataset = load_dataset('csv', data_files={'train':['my_train_file_1.csv','my_train_file_2.csv'],'test': 'my_test_file.csv'})
+    # train_dataset = load_dataset('csv', data_files=args.data_path, split='train[:90%]', verification_mode='no_checks')
+
+    if data_path.endswith('_disk'):
+        return load_from_disk(data_path)
+
+    dataset_name = os.path.basename(data_path)
+    p = dataset_name.rfind('.')
+    if p!=-1:
+        dataset_name = dataset_name[:p]
+    disk_dir = os.path.join(os.path.dirname(data_path), f'{dataset_name}_for_{tag}_disk')
+    if os.path.exists(disk_dir):
+        return load_from_disk(disk_dir)
+    else:
+        data_files = data_path if os.path.isfile(data_path) else [os.path.join(data_path, f) for f in os.listdir(data_path) if f.enswith('.csv')]
+        dataset = load_dataset("csv", data_files=data_files)
+        pre_func = partial(preprocess, tokenizer=tokenizer, tag=tag)
+        dataset = dataset.map(pre_func, batched=True, num_proc=8)
+        dataset.save_to_disk(disk_dir)
+        return dataset
+
+
 def pretrain(args, tag):
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-    set_seed(42)
+    set_seed(args.seed)
     tokenizer = get_tokenizer_by_tag(tag=tag, max_length=args.max_length)
 
     model = None
@@ -52,42 +87,37 @@ def pretrain(args, tag):
         model_name = 'llama'
     model_param_size = sum(t.numel() for t in model.parameters())
     print(model)
-    print(f"model paras: {model_param_size/1e6:.1f}M parameters")
+    print(f"{model_name} model paras: {model_param_size/1e6:.1f}M")
 
-    ## load_dataset
-    ## path options:  json, csv, text, panda, imagefolder
-    # dataset = load_dataset('csv', data_files={'train':['my_train_file_1.csv','my_train_file_2.csv'],'test': 'my_test_file.csv'})
-
-    # dataset = load_dataset('csv', data_files=args.data_path, split='train[:90%]+train[90%:100%]', verification_mode='no_checks')
-    dataset = load_dataset('csv', data_files=args.data_path)
-    pre_func = partial(preprocess, tokenizer=tokenizer, tag=tag)
-    dataset = dataset.map(pre_func, batched=True, num_proc=8)
-
-    print(dataset['train'][0])
-    print(dataset.keys(), dataset['train'], len(dataset['train'])) # TODO
-    # exit()
+    dataset = get_dataset(args.data_path, tokenizer, tag)
+    split_dataset = dataset
+    if 'test' not in split_dataset:
+        if 'validate' in dataset:
+            split_dataset['test'] = split_dataset['validate']
+        else:
+            split_dataset = dataset['train'].train_test_split(test_size=0.05, seed=args.seed)
+    print(split_dataset)
 
     # TODO, structure-aware masking
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm= tag.lower()=='mlm')
     # DataCollatorWithPadding, DataCollatorForSeq2Seq, ForWholeWordMask
 
-    epoch = 50
-    batch_size = 32
     model_size = f'{args.dim}_{args.layer}'
     training_args = TrainingArguments(
-        output_dir=f"./{model_name}_{model_size}_results",
+        output_dir=args.run_name,
         evaluation_strategy="epoch",
-        learning_rate=3e-4,
+        learning_rate=args.lr,
         weight_decay=0.1,
         gradient_accumulation_steps=1,
-        per_device_train_batch_size=batch_size,
+        per_device_train_batch_size=args.batch_size,
         # warmup_steps=10_000,
         # max_steps=100_000, # only a demo
         # logging_steps=1000,
         # eval_steps=5000,
-        num_train_epochs=epoch,
+        num_train_epochs=args.epoch,
         logging_strategy="epoch",
-        save_strategy="epoch",
+        save_strategy="epoch",  # save checkpoint
+        load_best_model_at_end=True,
         fp16=True,
         report_to = "tensorboard",
     )
@@ -95,8 +125,8 @@ def pretrain(args, tag):
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=dataset["train"],
-        eval_dataset=dataset["train"],
+        train_dataset=split_dataset["train"],
+        eval_dataset=split_dataset["test"],
         data_collator=data_collator,
         tokenizer=tokenizer,
         callbacks=my_callbacks,
