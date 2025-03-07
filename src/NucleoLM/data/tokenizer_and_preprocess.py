@@ -33,7 +33,6 @@ def get_tokenizer(tokenizer_file, max_length, bos_token, eos_token):
 
 
 def get_tokenizer_by_tag(tag='mlm', *args, **kargs):
-    tag = tag.lower()
     assert tag in ['mlm', 'ar'], f'Unknown tag: {tag}, should be in ["mlm", "ar"]'
     path = os.path.join(SRC_DIR, f'tokenizer_{tag}.json')
     bos_token = '[CLS]' if tag == 'mlm' else '<BOS>'
@@ -57,6 +56,7 @@ def preprocess(samples, tokenizer, tag='mlm'):
             # TODO  connects
             seq = seq.upper().replace('T', 'U')
             text = f"{bos_token}{seq}{eos_token}" # head/rear special tokens will be removed and readded.
+            processed_samples['connects'] = [0] + connects + [0]
         elif tag=='ar':
             # "<BOS>AUGCNX<SS>DBN<EOS>"
             seq = seq.upper().replace('T', 'U')

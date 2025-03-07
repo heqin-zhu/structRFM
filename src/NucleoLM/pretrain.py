@@ -10,7 +10,7 @@ from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
 from transformers import LlamaForCausalLM, LlamaModel
 
-from .tokenizer import get_tokenizer_by_tag, preprocess
+from .data import get_tokenizer_by_tag, preprocess, PretrainDataCollatorWithStructure
 from .model import get_bert_model, get_llama_model, get_llama_causal_model
 
 
@@ -43,6 +43,7 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.0003, help='learning rate')
     parser.add_argument('--epoch', type=int, default=50, help='learning rate')
     parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--mlm_structure', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -98,9 +99,11 @@ def pretrain(args, tag):
             split_dataset = dataset['train'].train_test_split(test_size=0.05, seed=args.seed)
     print(split_dataset)
 
-    # TODO, structure-aware masking
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm= tag.lower()=='mlm')
     # DataCollatorWithPadding, DataCollatorForSeq2Seq, ForWholeWordMask
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm= tag=='mlm')
+    if tag == 'mlm' and args.mlm_structure:
+        # structure-directed masking
+        data_collator = PretrainDataCollatorWithStructure(tokenizer=tokenizer, mlm=True)
 
     model_size = f'{args.dim}_{args.layer}'
     training_args = TrainingArguments(
