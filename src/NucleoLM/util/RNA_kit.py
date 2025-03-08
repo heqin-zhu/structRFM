@@ -382,7 +382,7 @@ def dbn2connects(dbn:str)->[int]:
 
 
 def connects2dbn(connects:[int])->str:
-  '''
+    '''
     Convert connects to dbn. [Warning] Can't deal with pseudo knot.
 
     Parameters

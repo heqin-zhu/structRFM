@@ -238,7 +238,6 @@ dependencies:
       - beautifulsoup4==4.12.2
       - biopython==1.83
       - blessed==1.20.0
-      - bpfold==0.0.1
       - cachetools==5.5.2
       - click==8.1.6
       - croniter==1.4.1
@@ -322,4 +321,3 @@ dependencies:
       - xxhash==3.5.0
       - yarl==1.9.2
       - zipp==3.20.2
-prefix: /public2/home/heqinzhu/miniconda3/envs/RNALM
