@@ -1,4 +1,5 @@
-source activate /root/miniconda3/envs/RNALM # wrong: conda activate
+source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
+conda env list
 
 USER_DIR=/heqinzhu
 PROGRAM_DIR=$USER_DIR/gitrepo/LLM/NucleoLM

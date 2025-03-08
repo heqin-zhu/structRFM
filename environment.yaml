@@ -1,4 +1,4 @@
-name: RNALM
+name: RNA3d
 channels:
   - pytorch
   - nvidia
