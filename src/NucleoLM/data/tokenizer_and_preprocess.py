@@ -6,7 +6,7 @@ from tokenizers.implementations import BaseTokenizer
 from transformers import PreTrainedTokenizerFast
 
 
-from BPfold.util.RNA_kit import connects2dbn
+from ..util.RNA_kit import connects2dbn
 
 
 SRC_DIR = os.path.abspath(os.path.dirname(__file__))
