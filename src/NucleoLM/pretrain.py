@@ -11,7 +11,7 @@ from transformers import DataCollatorForLanguageModeling
 from transformers import LlamaForCausalLM, LlamaModel
 
 from .data import get_tokenizer_by_tag, preprocess, PretrainDataCollatorWithStructure
-from .model import get_bert_model, get_llama_model, get_llama_causal_model
+from .model import get_bert_mlm_stru_pretraining, get_llama_model, get_llama_causal_model
 
 
 def set_seed(seed, deterministic=True):
@@ -41,8 +41,8 @@ def parse_args():
 
     # Training args
     parser.add_argument('--lr', type=float, default=0.0003, help='learning rate')
-    parser.add_argument('--epoch', type=int, default=50, help='learning rate')
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--epoch', type=int, default=10, help='learning rate')
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--mlm_structure', action='store_true')
     args = parser.parse_args()
     return args
@@ -65,7 +65,7 @@ def get_dataset(data_path, tokenizer, tag):
     if os.path.exists(disk_dir):
         return load_from_disk(disk_dir)
     else:
-        data_files = data_path if os.path.isfile(data_path) else [os.path.join(data_path, f) for f in os.listdir(data_path) if f.enswith('.csv')]
+        data_files = data_path if os.path.isfile(data_path) else [os.path.join(data_path, f) for f in os.listdir(data_path) if f.endswith('.csv')]
         dataset = load_dataset("csv", data_files=data_files)
         pre_func = partial(preprocess, tokenizer=tokenizer, tag=tag)
         dataset = dataset.map(pre_func, batched=True, num_proc=8)
@@ -81,7 +81,7 @@ def pretrain(args, tag):
     model = None
     model_name = ''
     if tag=='mlm':
-        model = get_bert_model(args.dim, args.layer, args.from_pretrained, tokenizer)
+        model = get_bert_mlm_stru_pretraining(args.dim, args.layer, args.from_pretrained, tokenizer)
         model_name = 'bert'
     else:
         model = get_llama_causal_model(args.dim, args.layer, args.from_pretrained, tokenizer)
@@ -106,21 +106,26 @@ def pretrain(args, tag):
         data_collator = PretrainDataCollatorWithStructure(tokenizer=tokenizer, mlm=True)
 
     model_size = f'{args.dim}_{args.layer}'
+    total_steps = 21477078//args.batch_size 
+    step_interval = total_steps//10
     training_args = TrainingArguments(
         output_dir=args.run_name,
-        evaluation_strategy="epoch",
         learning_rate=args.lr,
-        weight_decay=0.1,
-        gradient_accumulation_steps=1,
+        num_train_epochs=args.epoch,
+        max_steps=total_steps*args.epoch,
+        weight_decay=0., # TODO
+        gradient_accumulation_steps=1, # 显存不够大 bs， 增加此参数
         per_device_train_batch_size=args.batch_size,
         # warmup_steps=10_000,
-        # max_steps=100_000, # only a demo
-        # logging_steps=1000,
-        # eval_steps=5000,
-        num_train_epochs=args.epoch,
-        logging_strategy="epoch",
-        save_strategy="epoch",  # save checkpoint
+        logging_strategy="steps",
+        logging_steps=step_interval//10,
+        evaluation_strategy="steps",
+        eval_steps=step_interval,
+        save_strategy="steps", 
+        save_steps=step_interval, 
         load_best_model_at_end=True,
+        metric_for_best_model='eval_loss', # TODO
+        greater_is_better=False,
         fp16=True,
         report_to = "tensorboard",
     )
@@ -128,22 +133,20 @@ def pretrain(args, tag):
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=split_dataset["train"],
+        train_dataset=split_dataset["train"], # torch.utils.data.Dataset or torch.utils.data.IterableDataset: if torch.utils.data.Dataset, 则会自动删除模型的 forward() 方法不接受的列。 这也太坑了, data_collator 要用到的时候，被删除了， 找了半天的bug
         eval_dataset=split_dataset["test"],
         data_collator=data_collator,
         tokenizer=tokenizer,
         callbacks=my_callbacks,
     )
 
-
     if args.resume_from_checkpoint:
         print(f'Loading checkpoint: {args.resume_from_checkpoint}')
         trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
     else:
         trainer.train()
-
-    trainer.save_model(f"./{model_name}_{model_size}")
-    tokenizer.save_pretrained(f"./{model_name}_{model_size}")
+    trainer.save_model(os.path.join(args.run_name, f"trainer_ep{args.epoch}"))
+    tokenizer.save_pretrained(os.path.join(args.run_name, f"tokenizer_ep{args.epoch}"))
 
 
 def run_pretrain():

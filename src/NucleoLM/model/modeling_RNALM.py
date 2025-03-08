@@ -1,11 +1,11 @@
 import torch.nn as nn
 from transformers import LlamaConfig, BertConfig
-from transformers import LlamaForCausalLM, LlamaModel, BertModel
+from transformers import LlamaForCausalLM, LlamaModel, BertForMaskedLM
 
 ## For long seq
 # StripedHyenaConfig(**model_config)
 # StripedHyenaModelForCausalLM
-
+# BertForPretraining: model.get_pool_output,  model.get_sequence_output
 
 def get_llama_model(dim, layer, from_pretrained, tokenizer, model_class=LlamaModel):
     model_config = LlamaConfig(
@@ -36,7 +36,7 @@ def get_llama_causal_model(dim, layer, from_pretrained, tokenizer):
     return get_llama_model(dim, layer, from_pretrained, tokenizer, model_class=LlamaForCausalLM)
 
 
-def get_bert_model(dim, layer, from_pretrained, tokenizer):
+def get_bert(dim, layer, from_pretrained, tokenizer, model_class=BertForMaskedLM):
     model_config = BertConfig(
          vocab_size=len(tokenizer),
          hidden_size=dim,
@@ -50,12 +50,17 @@ def get_bert_model(dim, layer, from_pretrained, tokenizer):
          max_position_embeddings=tokenizer.model_max_length,
          initializer_range=0.02
     )
-    model_class = BertModel
     if from_pretrained:
         return model_class.from_pretrained(from_pretrained, config=model_config)
     else:
         return model_class(config=model_config)
-    # model.get_pool_output,  model.get_sequence_output
+
+
+def get_bert_mlm_stru_pretraining(*args, **kargs):
+    class Bert_mlm_stru(BertForMaskedLM):
+        def forward(self, input_ids, attention_mask, connects=None, *args, **kargs):
+            return super().forward(input_ids=input_ids, attention_mask=attention_mask, *args, **kargs)
+    return get_bert(model_class=Bert_mlm_stru, *args, **kargs)
 
 
 class CustomBertClassifier(nn.Module):

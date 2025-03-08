@@ -15,10 +15,10 @@ SRC_DIR = os.path.abspath(os.path.dirname(__file__))
 __all__ = ['get_tokenizer_by_tag',  'preprocess']
 
 
-def get_tokenizer(tokenizer_file, max_length, bos_token, eos_token):
+def get_tokenizer(tokenizer_file, max_length, bos_token, eos_token, *args, **kargs):
     tokenizer = PreTrainedTokenizerFast(
         tokenizer_file=tokenizer_file,
-        padding_side='right',
+        padding_side='right', # delt by collator
         truncation_side='right',
         cls_token=bos_token,
         bos_token=bos_token,
@@ -27,7 +27,9 @@ def get_tokenizer(tokenizer_file, max_length, bos_token, eos_token):
         unk_token='[UNK]',
         mask_token='[MASK]',
         pad_token='[PAD]',
-        model_max_length=max_length
+        model_max_length=max_length,
+        *args,
+        **kargs,
     )
     return tokenizer
 
@@ -46,21 +48,22 @@ def preprocess(samples, tokenizer, tag='mlm'):
         "input_ids": [],
         "attention_mask": []
     }
+    if tag=='mlm':
+        processed_samples['connects'] = []
     dbn_vocab = set('.()[]{}')
     bos_token = tokenizer.bos_token
     eos_token = tokenizer.eos_token
-    for seq, connects in zip(samples['seq'], samples['connects']):
-        text = None
+    for seq, connects_str in zip(samples['seq'], samples['connects']):
         if tag=='mlm':
             # "[CLS]AUGCNX[SEP]"
-            # TODO  connects
             seq = seq.upper().replace('T', 'U')
             text = f"{bos_token}{seq}{eos_token}" # head/rear special tokens will be removed and readded.
-            processed_samples['connects'] = [0] + connects + [0]
+            connects = [0] + json.loads(connects_str) + [0]
+            processed_samples['connects'].append(connects)
         elif tag=='ar':
             # "<BOS>AUGCNX<SS>DBN<EOS>"
             seq = seq.upper().replace('T', 'U')
-            dbn = connects2dbn(json.loads(connects))
+            dbn = connects2dbn(json.loads(connects_str))
             dbn = ''.join([i if i in dbn_vocab else '?' for i in dbn])
             text = f"{bos_token}{seq}<SS>{dbn}{eos_token}" # head/rear special tokens will be removed and readded.
         else:

@@ -21,7 +21,6 @@ class PretrainDataCollatorWithStructure(DataCollatorForLanguageModeling):
     """
 
     def set_ratio(self, step: int, total_steps: int = 167789):
-        ratio = None
         if step < total_steps * 0.15:
             ratio = 0.
         elif step < total_steps * 0.85:
@@ -31,18 +30,28 @@ class PretrainDataCollatorWithStructure(DataCollatorForLanguageModeling):
             ratio = 0.5
         return ratio
 
-    def __call__(self, examples: List[Union[List[int], Any, Dict[str, Any]]]) -> Dict[str, Any]:
+    def __call__(self, examples: Any) -> Dict[str, Any]:
         self.step_cnt += 1
+        # print('\nexamples', examples[0].keys()) # TODO
+        # print(examples[0]['input_ids'], examples[0]['connects'])
+        # print(len(examples[0]['input_ids']), len(examples[0]['connects']))
+
         # Handle dict or lists with proper padding and conversion to tensor.
+        pad_examples = [{k: v for k, v in example.items() if k!='connects'} for example in examples]
         if isinstance(examples[0], Mapping):
             batch = pad_without_fast_tokenizer_warning(
-                self.tokenizer, examples, return_tensors="pt", pad_to_multiple_of=self.pad_to_multiple_of
+                self.tokenizer, pad_examples, return_tensors="pt", pad_to_multiple_of=self.pad_to_multiple_of
             )
         else:
             batch = {
-                "input_ids": _torch_collate_batch(examples, self.tokenizer, pad_to_multiple_of=self.pad_to_multiple_of)
+                "input_ids": _torch_collate_batch(pad_examples, self.tokenizer, pad_to_multiple_of=self.pad_to_multiple_of)
             }
 
+        batch['connects'] = torch.nn.utils.rnn.pad_sequence(
+            [torch.tensor(example['connects']) for example in examples],
+            batch_first=True,
+            padding_value=0,
+        )
         # If special token mask has been preprocessed, pop it from the dict.
         special_tokens_mask = batch.pop("special_tokens_mask", None)
         # randomly take one of the three masking strategies
@@ -66,7 +75,6 @@ class PretrainDataCollatorWithStructure(DataCollatorForLanguageModeling):
             )
         else:
             raise ValueError("Unknown masking strategy.")
-
         return batch
 
     def mask_transform(self, inputs: Any, labels: Any, masked_indices: Any) -> Tuple[Any, Any]:
@@ -204,7 +212,6 @@ class PretrainDataCollatorWithStructure(DataCollatorForLanguageModeling):
         """
         Prepare masked SS inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
-        print('in mask_structure', inputs.shape, connects.shape)
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
         probability_matrix = torch.full(labels.shape, self.mlm_probability)
@@ -220,20 +227,21 @@ class PretrainDataCollatorWithStructure(DataCollatorForLanguageModeling):
         masked_indices = torch.bernoulli(probability_matrix).bool()
 
         rng = torch.arange(inputs.shape[1])
+        # print('rng left_connect', rng.shape, connects.shape)
         left_connects = torch.where(connects > rng, connects, 0)
         # currently left: masked_left_connects_indices
         connects_indices = connects!=0
         masked_left_fill_right_connects_indices = masked_indices & (left_connects!=0)
-        print('before fill', masked_left_fill_right_connects_indices)
+        # print('before fill', masked_left_fill_right_connects_indices[0])
         fill_right_indices = torch.nonzero(masked_left_fill_right_connects_indices, as_tuple=True)
         # currently left and right: fill right, masked left_right connects_indices
         for i, (row, col) in enumerate(zip(*fill_right_indices)):
             masked_left_fill_right_connects_indices[row, left_connects[row, col]] = True
 
         final_masked_indices = masked_left_fill_right_connects_indices | (masked_indices & ~connects_indices)
-        print('after  fill', masked_left_fill_right_connects_indices)
-        print('after  ori ', masked_indices)
-        print('after final', final_masked_indices)
+        # print('after  fill', masked_left_fill_right_connects_indices[0])
+        # print('after  ori ', masked_indices[0])
+        # print('after final', final_masked_indices[0])
         ## num_masked_token of:  labels: masked_indices, inputs: final_masked_indices
         ## using local various context of loop bases to predict relatively stable helix (SS).
         labels[~final_masked_indices] = -100  # We only compute loss on masked tokens
