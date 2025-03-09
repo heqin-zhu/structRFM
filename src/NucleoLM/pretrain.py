@@ -140,7 +140,7 @@ def pretrain(args, tag):
         callbacks=my_callbacks,
     )
 
-    if args.resume_from_checkpoint and any(f.startswith('checkpoint') for f in os.path.listdir(args.run_name)):
+    if args.resume_from_checkpoint and any(f.startswith('checkpoint') for f in os.listdir(args.run_name)):
         print(f'Resume_from_checkpoint...')
         trainer.train(resume_from_checkpoint=True)
     else:
