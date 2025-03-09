@@ -1,4 +1,4 @@
-source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
+# source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
 conda env list
 
 # parse args
@@ -44,5 +44,8 @@ cmd="python3 $PROGRAM_DIR/main.py --run_name $OUT_DIR/$RUN_NAME --data_path $DAT
 if [ "$print" = true ]; then
     echo $cmd
 fi
+    echo $cmd
 
-exec $cmd
+# exec $cmd  # wrong
+# exec bash -c "$cmd" # correct
+eval $cmd  # correct
