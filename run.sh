@@ -37,7 +37,7 @@ PROGRAM_DIR=$USER_DIR/gitrepo/LLM/NucleoLM
 DATA_DIR=$USER_DIR/gitrepo/LLM/RNAcentral/RNAcentral_BPfold_SS
 OUT_DIR=$USER_DIR/runs
 
-RUN_NAME="${tag}_768x12_bs${batch_size}_ep${epoch}_lr${lr}"
+RUN_NAME="${tag}_768x12_lr${lr}"
 
 cmd="python3 $PROGRAM_DIR/main.py --run_name $OUT_DIR/$RUN_NAME --data_path $DATA_DIR --tag ${tag} --max_length 514 --dim 768 --layer 12 --batch_size ${batch_size} --epoch ${epoch} --lr ${lr} --mlm_structure --resume_from_checkpoint "
 
