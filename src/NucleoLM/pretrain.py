@@ -140,8 +140,11 @@ def pretrain(args, tag):
         callbacks=my_callbacks,
     )
 
-    print(f'Resume_from_checkpoint: {args.resume_from_checkpoint}')
-    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+    if args.resume_from_checkpoint and any(f.startswith('checkpoint') for f in os.path.listdir(args.run_name)):
+        print(f'Resume_from_checkpoint...')
+        trainer.train(resume_from_checkpoint=True)
+    else:
+        trainer.train()
 
     trainer.save_model(os.path.join(args.run_name, f"trainer_ep{args.epoch}"))
     tokenizer.save_pretrained(os.path.join(args.run_name, f"tokenizer_ep{args.epoch}"))
