@@ -1,4 +1,4 @@
-# source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
+source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
 conda env list
 
 # parse args
