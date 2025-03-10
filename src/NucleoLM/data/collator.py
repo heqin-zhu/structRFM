@@ -226,22 +226,13 @@ class PretrainDataCollatorWithStructure(DataCollatorForLanguageModeling):
         probability_matrix.masked_fill_(special_tokens_mask, value=0.0)
         masked_indices = torch.bernoulli(probability_matrix).bool()
 
-        rng = torch.arange(inputs.shape[1])
-        # print('rng left_connect', rng.shape, connects.shape)
-        left_connects = torch.where(connects > rng, connects, 0)
-        # currently left: masked_left_connects_indices
+        # rng = torch.arange(inputs.shape[1])
+        # left_connects = torch.where(connects > rng, connects, 0) # not used, only match left connects?
         connects_indices = connects!=0
-        masked_left_fill_right_connects_indices = masked_indices & (left_connects!=0)
-        # print('before fill', masked_left_fill_right_connects_indices[0])
-        fill_right_indices = torch.nonzero(masked_left_fill_right_connects_indices, as_tuple=True)
-        # currently left and right: fill right, masked left_right connects_indices
-        for i, (row, col) in enumerate(zip(*fill_right_indices)):
-            masked_left_fill_right_connects_indices[row, left_connects[row, col]] = True
-
-        final_masked_indices = masked_left_fill_right_connects_indices | (masked_indices & ~connects_indices)
-        # print('after  fill', masked_left_fill_right_connects_indices[0])
-        # print('after  ori ', masked_indices[0])
-        # print('after final', final_masked_indices[0])
+        match_masked_connects_indices = masked_indices & connects_indices # left_connects?
+        for i, (row, col) in enumerate(zip(*torch.nonzero(match_masked_connects_indices, as_tuple=True))):
+            match_masked_connects_indices[row, connects[row, col]] = True
+        final_masked_indices = match_masked_connects_indices | (masked_indices & ~connects_indices)
         ## num_masked_token of:  labels: masked_indices, inputs: final_masked_indices
         ## using local various context of loop bases to predict relatively stable helix (SS).
         labels[~final_masked_indices] = -100  # We only compute loss on masked tokens
