@@ -58,8 +58,9 @@ def get_bert(dim, layer, from_pretrained, tokenizer, model_class=BertForMaskedLM
 
 def get_bert_mlm_stru_pretraining(*args, **kargs):
     class Bert_mlm_stru(BertForMaskedLM):
-        def forward(self, input_ids, attention_mask, connects=None, *args, **kargs):
-            return super().forward(input_ids=input_ids, attention_mask=attention_mask, *args, **kargs)
+        # NOTICE: explicitly define the `labels` para, not rely on kargs, otherwise the `labels` para won't be correctly passed and the model won't return `eval_loss` when saving checkpoint.
+        def forward(self, input_ids, attention_mask, labels=None, connects=None, *args, **kargs):
+            return super().forward(input_ids=input_ids, attention_mask=attention_mask, labels=labels, *args, **kargs)
     return get_bert(model_class=Bert_mlm_stru, *args, **kargs)
 
 
