@@ -1,17 +1,14 @@
 import os
 import random
 import argparse
-from functools import partial
 
 import torch
 import tensorboard
-from datasets import load_dataset, load_from_disk
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
-from transformers import LlamaForCausalLM, LlamaModel
 
-from .data import get_tokenizer_by_tag, preprocess, PretrainDataCollatorWithStructure
-from .model import get_bert_mlm_stru_pretraining, get_llama_model, get_llama_causal_model
+from .data import get_tokenizer_by_tag, get_dataset, PretrainDataCollatorWithStructure
+from .model import get_bert_mlm_stru_pretraining, get_llama_causal_model
 
 
 def set_seed(seed, deterministic=True):
@@ -30,7 +27,7 @@ def parse_args():
     # Data args
     parser.add_argument('--data_path', type=str, default='../RNAcentral/RNAcentral_BPfold_SS')
     parser.add_argument('--tag', type=str, choices=['mlm', 'ar'], default='mlm')
-    parser.add_argument('--max_length', type=int, default=512, help='Max length of tokens')
+    parser.add_argument('--max_length', type=int, default=514, help='Max length of tokens')
     parser.add_argument('--seed', type=int, default=42)
 
     # Model args
@@ -46,31 +43,6 @@ def parse_args():
     parser.add_argument('--mlm_structure', action='store_true')
     args = parser.parse_args()
     return args
-
-
-def get_dataset(data_path, tokenizer, tag):
-    ## load_dataset
-    ## path options:  json, csv, text, panda, imagefolder
-    # dataset = load_dataset('csv', data_files={'train':['my_train_file_1.csv','my_train_file_2.csv'],'test': 'my_test_file.csv'})
-    # train_dataset = load_dataset('csv', data_files=args.data_path, split='train[:90%]', verification_mode='no_checks')
-
-    if data_path.endswith('_disk'):
-        return load_from_disk(data_path)
-
-    dataset_name = os.path.basename(data_path)
-    p = dataset_name.rfind('.')
-    if p!=-1:
-        dataset_name = dataset_name[:p]
-    disk_dir = os.path.join(os.path.dirname(data_path), f'{dataset_name}_for_{tag}_disk')
-    if os.path.exists(disk_dir):
-        return load_from_disk(disk_dir)
-    else:
-        data_files = data_path if os.path.isfile(data_path) else [os.path.join(data_path, f) for f in os.listdir(data_path) if f.endswith('.csv')]
-        dataset = load_dataset("csv", data_files=data_files)
-        pre_func = partial(preprocess, tokenizer=tokenizer, tag=tag)
-        dataset = dataset.map(pre_func, batched=True, num_proc=8)
-        dataset.save_to_disk(disk_dir)
-        return dataset
 
 
 def pretrain(args, tag):

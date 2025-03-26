@@ -1,2 +1,3 @@
+from .RNAdata import get_dataset
 from .collator import PretrainDataCollatorWithStructure
 from .tokenizer_and_preprocess import get_tokenizer_by_tag, preprocess

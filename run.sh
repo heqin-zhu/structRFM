@@ -21,7 +21,7 @@ if [ -z "$batch_size" ]; then
     batch_size=64
 fi
 if [ -z "$epoch" ]; then
-    epoch=1
+    epoch=5
 fi
 if [ -z "$lr" ]; then
     lr=0.0002
@@ -44,7 +44,6 @@ cmd="python3 $PROGRAM_DIR/main.py --run_name $OUT_DIR/$RUN_NAME --data_path $DAT
 if [ "$print" = true ]; then
     echo $cmd
 fi
-    echo $cmd
 
 # exec $cmd  # wrong
 # exec bash -c "$cmd" # correct
