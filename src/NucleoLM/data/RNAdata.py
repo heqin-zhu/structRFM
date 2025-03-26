@@ -1,12 +1,80 @@
 import os
+import json
 from functools import partial
 
 from datasets import load_dataset, load_from_disk
 
-from .tokenizer_and_preprocess import preprocess
+from ..util.RNA_kit import connects2dbn
 
 
-def get_dataset(data_path, tokenizer, tag, save_to_disk=True):
+def process_mlm_input_seq(seq, bos_token='[CLS]', eos_token='[SEP]'):
+    # "[CLS]AUGCNX[SEP]"
+    seq = seq.upper().replace('T', 'U')
+    text = f"{bos_token}{seq}{eos_token}" # head/rear special tokens will be removed and readded.
+    return text
+
+
+def process_ar_input_seq_and_connects(seq, connects_str, bos_token='<BOS>', eos_token='<EOS>'):
+    # "<BOS>AUGCNX<SS>DBN<EOS>"
+    seq = seq.upper().replace('T', 'U')
+    dbn = connects2dbn(json.loads(connects_str))
+    dbn = ''.join([i if i in dbn_vocab else '?' for i in dbn])
+    text = f"{bos_token}{seq}<SS>{dbn}{eos_token}" # head/rear special tokens will be removed and readded.
+    return text
+
+
+def preprocess_pretrain(samples, tokenizer, tag='mlm'):
+    ''' columns in samples: seq, connects '''
+    processed_samples = {
+        "input_ids": [],
+        "attention_mask": []
+    }
+    if tag=='mlm':
+        processed_samples['connects'] = []
+    dbn_vocab = set('.()[]{}')
+    bos_token = tokenizer.bos_token
+    eos_token = tokenizer.eos_token
+    for seq, connects_str in zip(samples['seq'], samples['connects']):
+        if tag=='mlm':
+            text = process_mlm_input_seq(seq, bos_token, eos_token)
+            connects = [0] + json.loads(connects_str) + [0]
+            processed_samples['connects'].append(connects) # for mlm_structure
+        elif tag=='ar':
+            text = process_ar_input_seq_and_connects(seq, connects_str, bos_token, eos_token)
+        else:
+            raise Exception(f'tag={tag} should be "mlm" or "ar"')
+        tokenized_input = tokenizer(text, padding="longest", truncation=True, max_length=tokenizer.model_max_length)
+        processed_samples["input_ids"].append(tokenized_input["input_ids"])
+        processed_samples["attention_mask"].append(tokenized_input["attention_mask"])
+        # labels = tokenizer(sample['...'], max_length=tokenizer.model_max_length, truncation=True)
+        # processed_samples['labels'].append(labels['input_ids'])
+    return processed_samples
+
+
+def preprocess_finetune(samples, tokenizer, tag='mlm'):
+    ''' columns in samples: for mlm: seq;  for ar: seq, connects'''
+    processed_samples = {
+        "input_ids": [],
+        "attention_mask": []
+    }
+    dbn_vocab = set('.()[]{}')
+    bos_token = tokenizer.bos_token
+    eos_token = tokenizer.eos_token
+    iterator = zip(samples['seq'], samples['connects']) if tag == 'ar' else samples['seq']
+    for inputs in iterator:
+        if tag=='mlm':
+            text = process_mlm_input_seq(*inputs, bos_token, eos_token)
+        elif tag=='ar':
+            text = process_ar_input_seq_and_connects(*inputs, bos_token, eos_token)
+        else:
+            raise Exception(f'tag={tag} should be "mlm" or "ar"')
+        tokenized_input = tokenizer(text, padding="longest", truncation=True, max_length=tokenizer.model_max_length)
+        processed_samples["input_ids"].append(tokenized_input["input_ids"])
+        processed_samples["attention_mask"].append(tokenized_input["attention_mask"])
+    return processed_samples
+
+
+def preprocess_dataset(data_path, tokenizer, tag, preprocess, save_to_disk=True):
     '''
         save_to_disk, or .csv file (cols: name, seq, connects)
     '''
@@ -33,3 +101,11 @@ def get_dataset(data_path, tokenizer, tag, save_to_disk=True):
         if save_to_disk:
             dataset.save_to_disk(disk_dir)
         return dataset
+
+
+def get_pretrain_dataset(data_path, tokenizer, tag, save_to_disk=True):
+    return preprocess_dataset(data_path, tokenizer, tag, preprocess=preprocess_pretrain, save_to_disk=save_to_disk)
+
+
+def get_finetune_dataset(data_path, tokenizer, tag, save_to_disk=True):
+    return preprocess_dataset(data_path, tokenizer, tag, preprocess=preprocess_finetune, save_to_disk=save_to_disk)

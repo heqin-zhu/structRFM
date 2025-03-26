@@ -7,8 +7,8 @@ import tensorboard
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
 
-from .data import get_tokenizer_by_tag, get_dataset, PretrainDataCollatorWithStructure
 from .model import get_bert_mlm_stru_pretraining, get_llama_causal_model
+from .data import get_mlm_tokenizer, get_ar_tokenizer, get_pretrain_dataset, PretrainDataCollatorWithStructure
 
 
 def set_seed(seed, deterministic=True):
@@ -48,7 +48,10 @@ def parse_args():
 def pretrain(args, tag):
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     set_seed(args.seed)
-    tokenizer = get_tokenizer_by_tag(tag=tag, max_length=args.max_length)
+    if tag == 'mlm':
+        tokenizer = get_mlm_tokenizer(max_length=args.max_length)
+    elif tag == 'ar':
+        tokenizer = get_ar_tokenizer(max_length=args.max_length)
 
     model = None
     model_name = ''
@@ -62,7 +65,7 @@ def pretrain(args, tag):
     print(model)
     print(f"{model_name} model paras: {model_param_size/1e6:.1f}M")
 
-    dataset = get_dataset(args.data_path, tokenizer, tag)
+    dataset = get_pretrain_dataset(args.data_path, tokenizer, tag)
     split_dataset = dataset
     if 'test' not in split_dataset:
         if 'validate' in dataset:
