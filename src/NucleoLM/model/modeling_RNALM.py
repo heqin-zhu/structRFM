@@ -36,7 +36,7 @@ def get_llama_causal_model(dim, layer, from_pretrained, tokenizer):
     return get_llama_model(dim, layer, from_pretrained, tokenizer, model_class=LlamaForCausalLM)
 
 
-def get_bert(dim, layer, from_pretrained, tokenizer, model_class=BertForMaskedLM):
+def get_bert(dim, layer, from_pretrained, tokenizer, model_class=BertForMaskedLM, *args, **kwargs):
     model_config = BertConfig(
          vocab_size=len(tokenizer),
          hidden_size=dim,
@@ -48,7 +48,9 @@ def get_bert(dim, layer, from_pretrained, tokenizer, model_class=BertForMaskedLM
          hidden_dropout_prob=0.1,
          attention_probs_dropout_prob=0.1,
          max_position_embeddings=tokenizer.model_max_length,
-         initializer_range=0.02
+         initializer_range=0.02,
+         *args,
+         **kwargs,
     )
     if from_pretrained:
         return model_class.from_pretrained(from_pretrained, config=model_config)

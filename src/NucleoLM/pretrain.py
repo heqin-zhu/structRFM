@@ -129,17 +129,3 @@ def run_pretrain():
     args = parse_args()
     assert args.tag in {'mlm', 'ar'}, f'tag={args.tag} should be "mlm" or "ar"'
     pretrain(args, args.tag)
-
-
-if __name__ == '__main__':
-    '''
-    BPfold 7M
-    LLaMA:
-    (dim, layer), para
-    (256, 4), 3M
-    (384，6), 13M
-    (512, 8), 31M
-    (768, 12), 106M
-    (4096, 32), 1B
-    '''
-    run_pretrain()
