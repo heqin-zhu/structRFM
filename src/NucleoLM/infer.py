@@ -15,7 +15,7 @@ def save_seqs_to_csv(path, seqs, names=None):
 
 
 class RNALM_MLM:
-    def __init__(self, from_pretrained=None, max_length=514, dim=768, layer=12, output_hidden_states=True):
+    def __init__(self, from_pretrained, max_length=514, dim=768, layer=12, output_hidden_states=True):
         self.tokenizer = get_mlm_tokenizer(max_length=max_length)
         # set output_hidden_states=True to get the hidden states (features)
         self.model = get_bert_mlm_stru_pretraining(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
