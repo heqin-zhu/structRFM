@@ -76,6 +76,7 @@ def pretrain(args, tag):
 
     # DataCollatorWithPadding, DataCollatorForSeq2Seq, ForWholeWordMask
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm= tag=='mlm')
+    print('MLM_structure:', args.mlm_structure)
     if tag == 'mlm' and args.mlm_structure:
         # structure-directed masking
         data_collator = PretrainDataCollatorWithStructure(tokenizer=tokenizer, mlm=True)
