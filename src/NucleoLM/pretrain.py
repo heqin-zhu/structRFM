@@ -8,7 +8,7 @@ from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
 
 from .model import get_bert_mlm_stru_pretraining, get_llama_causal_model
-from .data import get_mlm_tokenizer, get_ar_tokenizer, get_pretrain_dataset, PretrainDataCollatorWithStructure
+from .data import get_mlm_tokenizer, get_ar_tokenizer, preprocess_and_load_dataset, PretrainDataCollatorWithStructure
 
 
 def set_seed(seed, deterministic=True):
@@ -65,7 +65,7 @@ def pretrain(args, tag):
     print(model)
     print(f"{model_name} model paras: {model_param_size/1e6:.1f}M")
 
-    dataset = get_pretrain_dataset(args.data_path, tokenizer, tag)
+    dataset = preprocess_and_load_dataset(args.data_path, tokenizer, tag, with_structure=args.mlm_structure)
     split_dataset = dataset
     if 'test' not in split_dataset:
         if 'validate' in dataset:

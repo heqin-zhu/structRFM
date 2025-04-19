@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from .model import get_bert_mlm_stru_pretraining
 from .data.tokenizer import get_mlm_tokenizer
-from .data.RNAdata import get_finetune_dataset, process_mlm_input_seq
+from .data.RNAdata import preprocess_and_load_dataset, process_mlm_input_seq
 
 
 def save_seqs_to_csv(path, seqs, names=None):

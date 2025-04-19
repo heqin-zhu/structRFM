@@ -1,4 +1,4 @@
 from .collator import PretrainDataCollatorWithStructure
 from .tokenizer import get_mlm_tokenizer, get_ar_tokenizer
 from .RNAdata import process_mlm_input_seq, process_ar_input_seq_and_connects
-from .RNAdata import preprocess_mlm_pretrain, preprocess_mlm_finetune, preprocess_ar, get_pretrain_dataset, get_finetune_dataset
+from .RNAdata import preprocess_mlm_with_structure, preprocess_mlm_without_structure, preprocess_ar, preprocess_and_load_dataset

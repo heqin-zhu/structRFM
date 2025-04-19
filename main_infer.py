@@ -1,7 +1,7 @@
 from transformers import Trainer, TrainingArguments
 
 from src.NucleoLM.infer import RNALM_MLM, save_seqs_to_csv
-from src.NucleoLM.data import get_finetune_dataset
+from src.NucleoLM.data import preprocess_and_load_dataset
 
 
 if __name__ == '__main__':
@@ -29,10 +29,11 @@ if __name__ == '__main__':
 
     # func: further finetuning
     tag = 'mlm'
+    mlm_structure=True
     seqs = ['AUGCNGUAK', 'AAA', 'AUGAGNAGK']
     data_path = 'tmp.csv'
     save_seqs_to_csv(data_path, seqs)
-    train_dataset = get_finetune_dataset(data_path, model_mlm.get_tokenizer(), tag, save_to_disk=False)
+    train_dataset = preprocess_and_load_dataset(data_path, model_mlm.get_tokenizer(), tag, with_structure=mlm_structure, save_to_disk=False)
     training_args = TrainingArguments(
                             output_dir = 'finetune',
                             num_train_epochs = 3,
@@ -43,4 +44,3 @@ if __name__ == '__main__':
                        args=training_args,
                        train_dataset=train_dataset, # TODO
                       )
-

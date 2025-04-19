@@ -23,7 +23,7 @@ def process_ar_input_seq_and_connects(seq, connects_str, bos_token='<BOS>', eos_
     return text
 
 
-def preprocess_mlm_pretrain(samples, tokenizer):
+def preprocess_mlm_with_structure(samples, tokenizer):
     ''' columns in samples: seq, connects '''
     processed_samples = {
         "input_ids": [],
@@ -43,7 +43,7 @@ def preprocess_mlm_pretrain(samples, tokenizer):
     return processed_samples
 
 
-def preprocess_mlm_finetune(samples, tokenizer):
+def preprocess_mlm_without_structure(samples, tokenizer):
     ''' columns in samples: seq '''
     processed_samples = {
         "input_ids": [],
@@ -79,40 +79,48 @@ def preprocess_ar(samples, tokenizer):
     return processed_samples
 
 
-def preprocess_dataset(data_path, tokenizer, tag, preprocess, save_to_disk=True):
+def preprocess_and_load_dataset(data_path, tokenizer, tag, with_structure=True, save_to_disk=True):
     '''
         save_to_disk, or .csv file (cols: name, seq, [connects])
     '''
-    ## load_dataset
+    ## transformer.load_dataset
     ## path options:  json, csv, text, panda, imagefolder
     # dataset = load_dataset('csv', data_files={'train':['my_train_file_1.csv','my_train_file_2.csv'],'test': 'my_test_file.csv'})
     # train_dataset = load_dataset('csv', data_files=args.data_path, split='train[:90%]', verification_mode='no_checks')
-
-    if data_path.endswith('_disk'):
-        return load_from_disk(data_path)
 
     dataset_name = os.path.basename(data_path)
     p = dataset_name.rfind('.')
     if p!=-1:
         dataset_name = dataset_name[:p]
     disk_dir = os.path.join(os.path.dirname(data_path), f'{dataset_name}_for_{tag}_disk')
+
+    preprocess_func = None
+    if tag == 'ar': # must with structure
+        preprocess_func = preprocess_ar
+    elif tag == 'mlm':
+        if with_structure: # pretrain with structure
+            preprocess_func = preprocess_mlm_with_structure
+        else:   # pretrain without structure, or finetinue 
+            preprocess_func = preprocess_mlm_without_structure
+    else:
+        raise Exception(f'Unknown tag: {tag}')
+
+    dataset = None
+    if data_path.endswith('_disk'):
+        print(f'Loading disk data: {data_path}')
+        dataset = load_from_disk(data_path)
+
     if os.path.exists(disk_dir):
-        return load_from_disk(disk_dir)
+        print(f'Loading disk data: {disk_dir}')
+        dataset = load_from_disk(disk_dir)
     else:
         data_files = data_path if os.path.isfile(data_path) else [os.path.join(data_path, f) for f in os.listdir(data_path) if f.endswith('.csv')]
         dataset = load_dataset("csv", data_files=data_files)
-        pre_func = partial(preprocess, tokenizer=tokenizer)
+        pre_func = partial(preprocess_func, tokenizer=tokenizer)
         dataset = dataset.map(pre_func, batched=True, num_proc=8)
         if save_to_disk:
             dataset.save_to_disk(disk_dir)
-        return dataset
-
-
-def get_pretrain_dataset(data_path, tokenizer, tag, save_to_disk=True):
-    preprocess = preprocess_mlm_pretrain if tag == 'mlm' else preprocess_ar
-    return preprocess_dataset(data_path, tokenizer, tag, preprocess=preprocess, save_to_disk=save_to_disk)
-
-
-def get_finetune_dataset(data_path, tokenizer, tag, save_to_disk=True):
-    preprocess = preprocess_mlm_finetune if tag == 'mlm' else preprocess_ar
-    return preprocess_dataset(data_path, tokenizer, tag, preprocess=preprocess, save_to_disk=save_to_disk)
+    columns = ["name", "seq", "input_ids", "attention_mask", "connects"]
+    if tag == 'mlm' and not with_structure:
+        columns = ["name", "seq", "input_ids", "attention_mask"]
+    return dataset.select_columns(columns)

@@ -35,7 +35,7 @@ fi
 mlm_stru_flag=""
 mlm_stru_str="_nostru"
 if [ "$mlm_structure" = true ]; then
-    mlm_stru_flag="--mlm_strucutre"
+    mlm_stru_flag="--mlm_structure"
     mlm_stru_str="_stru"
 
 fi
