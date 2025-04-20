@@ -58,15 +58,34 @@ class RNALM_MLM:
         return ''.join(new_parts), predicted_tokens, top_tokens_list
 
 
-    def extract_feature(self, seq, return_all=False, model_train=True):
-        if model_train:
-            self.model.train()
-        else:
-            self.model.eval()
+    @torch.no_grad()
+    def model_forward(self, seq, return_inputs=False):
+        '''
+            Get model outputs.
+            seq: str
+                seq_len
+            return outputs: dict
+                {'logits': logits, 'hidden_states': hidden_states'}
+        '''
+        self.model.eval()
         text = process_mlm_input_seq(seq)
         inputs = self.tokenizer(text, return_tensors='pt')
-        mask_positions = torch.where(inputs['input_ids'][0] == self.tokenizer.mask_token_id)[0]
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
         outputs = self.model(**inputs)
+        if return_inputs:
+            return outputs, inputs
+        return outputs
+
+
+    def extract_feature(self, seq, return_all=False):
+        '''
+            Extract hidden feature of input seq.
+            seq: str
+                seq_len
+            return: Tensor
+               (all_layers=13) x seq_len x hidden_size768
+        '''
+        outputs = self.model_forward(seq)
         hidden_states = outputs.hidden_states  # tuple(B x (seq_len+2) x hidden_size768), tuple_len = (1+layer12) 
-        return hidden_states if return_all else hidden_states[-1]
+        out_features = [hidd[0,1:-1,:] for hidd in hidden_states] # tuple(seq_len x hidden_size), tuple_len = (1+layer12)
+        return out_features if return_all else out_features[-1]

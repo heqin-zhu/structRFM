@@ -106,13 +106,12 @@ def preprocess_and_load_dataset(data_path, tokenizer, tag, with_structure=True, 
         raise Exception(f'Unknown tag: {tag}')
 
     dataset = None
-    if data_path.endswith('_disk'):
-        print(f'Loading disk data: {data_path}')
-        dataset = load_from_disk(data_path)
-
     if os.path.exists(disk_dir):
         print(f'Loading disk data: {disk_dir}')
         dataset = load_from_disk(disk_dir)
+    elif data_path.endswith('_disk') and os.path.exists(data_path):
+        print(f'Loading disk data: {data_path}')
+        dataset = load_from_disk(data_path)
     else:
         data_files = data_path if os.path.isfile(data_path) else [os.path.join(data_path, f) for f in os.listdir(data_path) if f.endswith('.csv')]
         dataset = load_dataset("csv", data_files=data_files)

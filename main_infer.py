@@ -24,8 +24,10 @@ if __name__ == '__main__':
     unmasked_seq, pred_tokens, top_tokens_list = model_mlm.unmask('A[mask]GUAGUAGUCCCG[mask]AAUG', top_k=2)
 
     # func: extract_feature
-    # B x (seq_len+2) x hidden_size768
-    last_hidden_state = model_mlm.extract_feature('AGUAGUAGUCCCGUG', return_all=False)
+    # seq_len x hidden_size768
+    last_feature = model_mlm.extract_feature('AGUAGUAGUCCCGUG', return_all=False)
+    print('extracted features:', last_feature.shape)
+    exit()
 
     # func: further finetuning
     tag = 'mlm'
