@@ -15,12 +15,15 @@ def save_seqs_to_csv(path, seqs, names=None):
 
 
 class RNALM_MLM:
-    def __init__(self, from_pretrained, max_length=514, dim=768, layer=12, output_hidden_states=True):
+    def __init__(self, from_pretrained, max_length=514, dim=768, layer=12, output_hidden_states=True, device=None):
         self.tokenizer = get_mlm_tokenizer(max_length=max_length)
         # set output_hidden_states=True to get the hidden states (features)
         self.model = get_bert_mlm_stru_pretraining(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
-        if torch.cuda.is_available():
-            self.model.cuda()
+        if device is None:
+            if torch.cuda.is_available():
+                self.model.cuda()
+        else:
+            self.model.to(device)
         print(f'Running on {self.model.device}')
 
     def get_tokenizer(self):
@@ -59,7 +62,7 @@ class RNALM_MLM:
 
 
     @torch.no_grad()
-    def model_forward(self, seq, return_inputs=False):
+    def model_forward(self, seq, return_inputs=False, is_cal_loss=False):
         '''
             Get model outputs.
             seq: str
@@ -71,7 +74,7 @@ class RNALM_MLM:
         text = process_mlm_input_seq(seq)
         inputs = self.tokenizer(text, return_tensors='pt')
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-        outputs = self.model(**inputs)
+        outputs = self.model(**inputs, labels=inputs['input_ids']) if is_cal_loss else self.model(**inputs)
         if return_inputs:
             return outputs, inputs
         return outputs
