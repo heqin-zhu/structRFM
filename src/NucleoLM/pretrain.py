@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument('--dim', type=int, default=768, help='hidden dim')
     parser.add_argument('--layer', type=int, default=12)
     parser.add_argument('--from_pretrained', type=str, help='for model')
-    parser.add_argument('--resume_from_checkpoint', action='store_true', help='for trainer')
+    parser.add_argument('--resume_from_checkpoint', type=str, help='checkpoint path for trainer, default resume_from_checkpoint=True')
 
     # Training args
     parser.add_argument('--lr', type=float, default=0.0003, help='learning rate')
@@ -116,7 +116,10 @@ def pretrain(args, tag):
         callbacks=my_callbacks,
     )
 
-    if args.resume_from_checkpoint and any(f.startswith('checkpoint') for f in os.listdir(args.run_name)):
+    if args.resume_from_checkpoint and os.path.isdir(args.resume_from_checkpoint):
+        print(f'Resume_from_checkpoint {args.resume_from_checkpoint}')
+        trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+    elif any(f.startswith('checkpoint') for f in os.listdir(args.run_name)):
         print(f'Resume_from_checkpoint...')
         trainer.train(resume_from_checkpoint=True)
     else:
