@@ -95,4 +95,8 @@ if __name__ == '__main__':
         step = round(step_interval * 10 * epoch)
         model_path = f'/heqinzhu/runs/mlm_768x12_lr0.0001/checkpoint-{step}'
         model_paths.append(model_path)
+
+    model_dir = '/heqinzhu/runs/mlm_768x12_lr0.0001_stru'
+    model_paths = [os.path.join(model_dir, f) for f in os.listdir(model_dir) if f.startswith('checkpoint')]
+
     evaluate_all(model_paths, args.data_dir, args.dest_dir)
