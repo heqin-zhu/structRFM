@@ -9,7 +9,7 @@ from tqdm import tqdm
 import pandas as pd
 from scipy.stats import spearmanr
 
-from src.NucleoLM.infer import RNALM_MLM, save_seqs_to_csv
+from src.RNAStruBert.infer import RNALM_MLM, save_seqs_to_csv
 
 
 @torch.no_grad()

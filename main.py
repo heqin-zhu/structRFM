@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from src.NucleoLM.pretrain import run_pretrain
+from src.RNAStruBert.pretrain import run_pretrain
 
 
 if __name__ == '__main__':

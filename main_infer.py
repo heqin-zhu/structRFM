@@ -1,7 +1,7 @@
 from transformers import Trainer, TrainingArguments
 
-from src.NucleoLM.infer import RNALM_MLM, save_seqs_to_csv
-from src.NucleoLM.data import preprocess_and_load_dataset
+from src.RNAStruBert.infer import RNALM_MLM, save_seqs_to_csv
+from src.RNAStruBert.data import preprocess_and_load_dataset
 
 
 if __name__ == '__main__':
