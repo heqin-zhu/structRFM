@@ -33,7 +33,7 @@ Issues = "https://github.com/heqin-zhu/RNAStruBert/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"RNAStruBert.configs" = ["*.yaml"]
+"RNAStruBert.data" = ["*.json"]
 
 [tool.setuptools.dynamic]
 version = {attr = "RNAStruBert.__version__"}  # any module attribute compatible with ast.literal_eval
