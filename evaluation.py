@@ -51,30 +51,32 @@ def evaluate_all(model_paths, data_dir, dest_dir='.'):
     '''
     os.makedirs(dest_dir, exist_ok=True)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    for f in os.listdir(data_dir):
-        path = os.path.join(data_dir, f)
-        df = pd.read_csv(path)
-        print(path)
+    data_paths = [os.path.join(data_dir, f) for f in os.listdir(data_dir)] if os.path.isdir(data_dir) else [data_dir]
+    for data_path in data_paths:
+        df = pd.read_csv(data_path)
+        print(data_path)
         print("Data Num", len(df))
         seqs = df['seq'].tolist()
         names = df['name'].tolist() if 'name' in df.columns else list(range(1, 1+len(seqs)))
         data = {'name': names}
         for model_path in model_paths:
-            print(model_path, end=' ')
             model_mlm = RNALM_MLM(from_pretrained=model_path, max_length=514, device=device)
             tokenizer = AutoTokenizer.from_pretrained(model_path)
             model_name = os.path.basename(model_path)
             # lls = cal_likelihood(seqs, model_mlm)
             ppls = cal_perplexity(seqs, model_mlm)
-            mean_ppl = np.mean(ppls)
-            print('perplexity', mean_ppl)
             data[model_name] = ppls
 
             # df = df[~df['label'].isna()]
             # labels = df['label'].tolist()
             # corr, _ = spearmanr(lls, labels)
             # print(f"correlation: {corr:.4f}")
-        pd.DataFrame(data).to_csv(os.path.join(dest_dir, os.path.basename(path).replace(".csv", f"_perplexity.csv")), index=False)
+        df = pd.DataFrame(data)
+        df.to_csv(os.path.join(dest_dir, os.path.basename(data_path).replace(".csv", f"_perplexity.csv")), index=False)
+
+        averages = df[[col for col in df.columns if col.startswith('checkpoint')]].mean()
+        for column, avg in averages.items():
+            print(f"mean_ppl={avg:.4f}, {column}")
 
 
 def parse_args():
@@ -88,15 +90,16 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    # TODO args.model_path
     model_paths = []
     step_interval = 16_778
-    for epoch in [1, 2, 3, 4, 5] + np.arange(5.5, 10.5, 0.5).tolist():
+    model_dir1 = '/heqinzhu/runs/mlm_768x12_lr0.0001'
+    model_dir2 = '/heqinzhu/runs/mlm_768x12_lr0.0001_stru'
+    # for epoch in [1, 2, 3, 4, 5] + np.arange(5.5, 15.5, 0.5).tolist():
+    for epoch in range(5, 16):
+        model_dir = model_dir1 if epoch <= 10 else model_dir2
         step = round(step_interval * 10 * epoch)
-        model_path = f'/heqinzhu/runs/mlm_768x12_lr0.0001/checkpoint-{step}'
-        model_paths.append(model_path)
-
-    model_dir = '/heqinzhu/runs/mlm_768x12_lr0.0001_stru'
-    model_paths = [os.path.join(model_dir, f) for f in os.listdir(model_dir) if f.startswith('checkpoint')]
-
+        model_path = os.path.join(model_dir, f'checkpoint-{step}')
+        if os.path.exists(model_path):
+            model_paths.append(model_path)
+    print(model_paths)
     evaluate_all(model_paths, args.data_dir, args.dest_dir)
