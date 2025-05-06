@@ -38,7 +38,7 @@ class RNALM_MLM:
         inputs = self.tokenizer(text, return_tensors='pt')
         mask_positions = torch.where(inputs['input_ids'][0] == self.tokenizer.mask_token_id)[0]
 
-        with torch.no_grad():
+        with torch.no_grad(), torch.cuda.amp.autocast():
             inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
             outputs = self.model(**inputs)
         logits = outputs.logits # B x (seq_len+2) x vocab
