@@ -7,7 +7,7 @@ import tensorboard
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
 
-from .model import get_bert_mlm_stru_pretraining, get_llama_causal_model
+from .model import get_RNAStruBert, get_llama_causal_model
 from .data import get_mlm_tokenizer, get_ar_tokenizer, preprocess_and_load_dataset, PretrainDataCollatorWithStructure
 
 
@@ -56,7 +56,7 @@ def pretrain(args, tag):
     model = None
     model_name = ''
     if tag=='mlm':
-        model = get_bert_mlm_stru_pretraining(args.dim, args.layer, args.from_pretrained, tokenizer)
+        model = get_RNAStruBert(args.dim, args.layer, args.from_pretrained, tokenizer)
         model_name = 'bert'
     else:
         model = get_llama_causal_model(args.dim, args.layer, args.from_pretrained, tokenizer)

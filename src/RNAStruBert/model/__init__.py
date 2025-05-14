@@ -1,1 +1,1 @@
-from .modeling_RNALM import *
+from .RNAStruBert import *

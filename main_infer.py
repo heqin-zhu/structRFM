@@ -1,6 +1,6 @@
 from transformers import Trainer, TrainingArguments
 
-from src.RNAStruBert.infer import RNALM_MLM, save_seqs_to_csv
+from src.RNAStruBert.infer import RNAStruBert_infer, save_seqs_to_csv
 from src.RNAStruBert.data import preprocess_and_load_dataset
 
 
@@ -17,15 +17,15 @@ if __name__ == '__main__':
     '''
 
     # model init
-    from_pretrained = '/heqinzhu/runs/mlm_768x12_lr0.0001/checkpoint-1124126'
-    model_mlm = RNALM_MLM(from_pretrained=from_pretrained, max_length=514)
+    from_pretrained = '/public/share/heqinzhu_share/RNAStruBert/checkpoint-1174460'
+    model_mlm = RNAStruBert_infer(from_pretrained=from_pretrained, max_length=514)
 
     # func: unmask
     unmasked_seq, pred_tokens, top_tokens_list = model_mlm.unmask('A[mask]GUAGUAGUCCCG[mask]AAUG', top_k=2)
 
     # func: extract_feature
     # seq_len x hidden_size768
-    last_feature = model_mlm.extract_feature('AGUAGUAGUCCCGUG', return_all=False)
+    last_feature = model_mlm.extract_feature('AGUAGUAGUCCCGUG', include_special=False, return_all=False)
     print('extracted features:', last_feature.shape)
     exit()
 

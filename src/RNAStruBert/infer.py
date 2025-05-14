@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from .model import get_bert_mlm_stru_pretraining
+from .model import get_RNAStruBert
 from .data.tokenizer import get_mlm_tokenizer
 from .data.RNAdata import preprocess_and_load_dataset, process_mlm_input_seq
 
@@ -14,17 +14,21 @@ def save_seqs_to_csv(path, seqs, names=None):
     df.to_csv(path, index=False)
 
 
-class RNALM_MLM:
+class RNAStruBert_infer:
     def __init__(self, from_pretrained, max_length=514, dim=768, layer=12, output_hidden_states=True, device=None):
-        self.tokenizer = get_mlm_tokenizer(max_length=max_length)
         # set output_hidden_states=True to get the hidden states (features)
-        self.model = get_bert_mlm_stru_pretraining(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
+
+        # self.tokenizer = AutoTokenizer(from_pretrained)
+        # self.model = AutoModel.from_pretrained(from_pretrained, output_hidden_states=True) # why won't output logtits?
+        self.tokenizer = get_mlm_tokenizer(max_length=max_length)
+        self.model = get_RNAStruBert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
         if device is None:
             if torch.cuda.is_available():
                 self.model.cuda()
         else:
             self.model.to(device)
         print(f'Running on {self.model.device}')
+
 
     def get_tokenizer(self):
         return self.tokenizer
@@ -33,6 +37,9 @@ class RNALM_MLM:
         return self.model
 
     def unmask(self, masked_seq, top_k=1):
+        '''
+            model.output.logtis
+        '''
         self.model.eval()
         text = process_mlm_input_seq(masked_seq)
         inputs = self.tokenizer(text, return_tensors='pt')
@@ -80,7 +87,7 @@ class RNALM_MLM:
         return outputs
 
 
-    def extract_feature(self, seq, return_all=False):
+    def extract_feature(self, seq, include_special=True, return_all=False):
         '''
             Extract hidden feature of input seq.
             seq: str
@@ -90,5 +97,7 @@ class RNALM_MLM:
         '''
         outputs = self.model_forward(seq)
         hidden_states = outputs.hidden_states  # tuple(B x (seq_len+2) x hidden_size768), tuple_len = (1+layer12) 
-        out_features = [hidd[0,1:-1,:] for hidd in hidden_states] # tuple(seq_len x hidden_size), tuple_len = (1+layer12)
+        ## batch_size = 1, use the first one 0 of this batch
+        sls = slice(None, None) if include_special else slice(1, -1)
+        out_features = [hidd[0, sls, :] for hidd in hidden_states] # tuple(seq_len x hidden_size), tuple_len = (1+layer12)
         return out_features if return_all else out_features[-1]

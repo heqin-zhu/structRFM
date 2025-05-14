@@ -36,7 +36,10 @@ def get_llama_causal_model(dim, layer, from_pretrained, tokenizer):
     return get_llama_model(dim, layer, from_pretrained, tokenizer, model_class=LlamaForCausalLM)
 
 
-def get_bert(dim, layer, from_pretrained, tokenizer, model_class=BertForMaskedLM, *args, **kwargs):
+def get_bert(dim, layer, from_pretrained=None, tokenizer=None, model_class=BertForMaskedLM, max_length=514, *args, **kwargs):
+    if tokenizer is None:
+        from ..data.tokenizer import get_mlm_tokenizer
+        tokenizer = get_mlm_tokenizer(max_length=max_length)
     model_config = BertConfig(
          vocab_size=len(tokenizer),
          hidden_size=dim,
@@ -58,35 +61,37 @@ def get_bert(dim, layer, from_pretrained, tokenizer, model_class=BertForMaskedLM
         return model_class(config=model_config)
 
 
-def get_bert_mlm_stru_pretraining(*args, **kargs):
-    class Bert_mlm_stru(BertForMaskedLM):
-        # NOTICE: explicitly define the `labels` para, not rely on kargs, otherwise the `labels` para won't be correctly passed and the model won't return `eval_loss` when saving checkpoint.
-        def forward(self, input_ids, attention_mask, labels=None, connects=None, *args, **kargs):
-            return super().forward(input_ids=input_ids, attention_mask=attention_mask, labels=labels, *args, **kargs)
-    return get_bert(model_class=Bert_mlm_stru, *args, **kargs)
+class RNAStruBert(BertForMaskedLM):
+    # NOTICE: explicitly define the `labels` para, not rely on kargs, otherwise the `labels` para won't be correctly passed and the model won't return `eval_loss` when saving checkpoint.
+    def forward(self, input_ids, attention_mask, labels=None, connects=None, *args, **kargs):
+        return super().forward(input_ids=input_ids, attention_mask=attention_mask, labels=labels, *args, **kargs)
 
 
-class CustomBertClassifier(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.bert = BertModel(config)
-        self.dropout = nn.Dropout(0.1)
-        self.classifier = nn.Linear(config.hidden_size, 2)  # 二分类任务
+def get_RNAStruBert(dim=768, layer=12, from_pretrained=None, tokenizer=None, *args, **kargs):
+    return get_bert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, model_class=RNAStruBert, *args, **kargs)
+
+
+class RNAStruBert_for_cls(nn.Module):
+    def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None):
+        super(RNAStruBert_for_cls).__init__()
+        self.RNAStruBert = get_RNAStruBert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, output_hidden_states=True)
+        self.cls = nn.Sequential(
+                Linear(in_features=dim, out_features=dim),
+                nn.GELU(),
+                nn.LayerNorm(dim),
+                nn.Dropout(0.1),
+                nn.Linear(in_features=dim, out_features=num_class),
+        )
 
     def forward(self, input_ids, attention_mask=None):
-        outputs = self.bert(
+        outputs = self.RNAStruBert(
             input_ids=input_ids,
             attention_mask=attention_mask
         )
-        pooled_output = outputs.last_hidden_state[:, 0, :]  # 取[CLS]向量
-        pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output)
+        cls_hidden = outputs.hidden_states[-1][:, 0, :]
+        logits = self.cls(cls_hidden)
         return logits
 
-def get_custom_bert():
-    config = BertConfig.from_pretrained("bert-base-uncased")
-    model = CustomBertClassifier(config)
-    # 替换第3层的自注意力
-    # layer_index = 2  # 第3层（索引从0开始）
-    # model.bert.encoder.layer[layer_index].attention.self = CustomAttention(config)
-    return model
+
+def get_RNAStruBert_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, *args, **kargs):
+    return RNAStruBert_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, *args, **kargs)
