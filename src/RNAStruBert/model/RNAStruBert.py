@@ -73,10 +73,10 @@ def get_RNAStruBert(dim=768, layer=12, from_pretrained=None, tokenizer=None, *ar
 
 class RNAStruBert_for_cls(nn.Module):
     def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None):
-        super(RNAStruBert_for_cls).__init__()
+        super(RNAStruBert_for_cls, self).__init__()
         self.RNAStruBert = get_RNAStruBert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, output_hidden_states=True)
         self.cls = nn.Sequential(
-                Linear(in_features=dim, out_features=dim),
+                nn.Linear(in_features=dim, out_features=dim),
                 nn.GELU(),
                 nn.LayerNorm(dim),
                 nn.Dropout(0.1),
