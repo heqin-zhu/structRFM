@@ -20,14 +20,15 @@ class PretrainDataCollatorWithStructure(DataCollatorForLanguageModeling):
     Data collator for pretraining data.
     """
 
-    def set_ratio(self, step: int, total_steps: int = 167789):
+    def set_ratio(self, step: int, total_steps: int = 1677890, final_ratio=0.5):
+        # TODO
         if step < total_steps * 0.15:
             ratio = 0.
         elif step < total_steps * 0.85:
-            # linear increase from 0 to 0.5
-            ratio = 0.5 * (step - total_steps * 0.15) / (total_steps * 0.7)
+            # linear increase from 0 to final_ratio
+            ratio = final_ratio * (step - total_steps * 0.15) / (total_steps * 0.7)
         else:
-            ratio = 0.5
+            ratio = final_ratio
         return ratio
 
     def __call__(self, examples: Any) -> Dict[str, Any]:
