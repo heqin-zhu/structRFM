@@ -1,5 +1,5 @@
 import os
-import json
+from ast import literal_eval
 from functools import partial
 
 from datasets import load_dataset, load_from_disk
@@ -17,7 +17,8 @@ def process_mlm_input_seq(seq, bos_token='[CLS]', eos_token='[SEP]'):
 def process_ar_input_seq_and_connects(seq, connects_str, bos_token='<BOS>', eos_token='<EOS>'):
     # "<BOS>AUGCNX<SS>DBN<EOS>"
     seq = seq.upper().replace('T', 'U')
-    dbn = connects2dbn(json.loads(connects_str))
+    # use literal_eval instread of json.loads, since json.loads is strict: such as 1. 'str' will be wrong, 2. "null", not "None"
+    dbn = connects2dbn(literal_eval(connects_str))
     dbn = ''.join([i if i in dbn_vocab else '?' for i in dbn])
     text = f"{bos_token}{seq}<SS>{dbn}{eos_token}" # head/rear special tokens will be removed and readded.
     return text
@@ -35,7 +36,7 @@ def preprocess_mlm_with_structure(samples, tokenizer):
     eos_token = tokenizer.eos_token
     for seq, connects_str in zip(samples['seq'], samples['connects']):
         text = process_mlm_input_seq(seq, bos_token, eos_token)
-        connects = [0] + json.loads(connects_str) + [0]
+        connects = [0] + literal_eval(connects_str) + [0]
         processed_samples["connects"].append(connects) # for mlm_structure
         tokenized_input = tokenizer(text, padding="longest", truncation=True, max_length=tokenizer.model_max_length)
         processed_samples["input_ids"].append(tokenized_input["input_ids"])
