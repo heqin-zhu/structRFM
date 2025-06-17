@@ -69,25 +69,27 @@ class RNAStruBert_infer:
 
 
     @torch.no_grad()
-    def model_forward(self, seq, return_inputs=False, is_cal_loss=False):
+    def model_forward(self, seq, return_inputs=False, is_cal_loss=False, output_attentions=False):
         '''
             Get model outputs.
             seq: str
                 seq_len
-            return outputs: dict
-                {'logits': logits, 'hidden_states': hidden_states'}
+            return outputs, (inputs): dict, (Tensor)
+                {'logits': logits, 'hidden_states': hidden_states', 'attentions': attentions}
         '''
         self.model.eval()
         text = process_mlm_input_seq(seq)
         inputs = self.tokenizer(text, return_tensors='pt')
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-        outputs = self.model(**inputs, labels=inputs['input_ids']) if is_cal_loss else self.model(**inputs)
+        attention = None
+        outputs = self.model(**inputs, labels=inputs['input_ids'], output_attentions=output_attentions) if is_cal_loss else self.model(**inputs, output_attentions=output_attentions)
         if return_inputs:
             return outputs, inputs
-        return outputs
+        else:
+            return outputs
 
 
-    def extract_feature(self, seq, include_special=True, return_all=False):
+    def extract_feature(self, seq, include_special=True, return_all=False, output_attentions=False):
         '''
             Extract hidden feature of input seq.
             seq: str
@@ -95,9 +97,15 @@ class RNAStruBert_infer:
             return: Tensor
                (all_layers=13) x seq_len x hidden_size768
         '''
-        outputs = self.model_forward(seq)
+        attention = None
+        outputs = self.model_forward(seq, output_attentions=True)
         hidden_states = outputs.hidden_states  # tuple(B x (seq_len+2) x hidden_size768), tuple_len = (1+layer12) 
         ## batch_size = 1, use the first one 0 of this batch
         sls = slice(None, None) if include_special else slice(1, -1)
         out_features = [hidd[0, sls, :] for hidd in hidden_states] # tuple(seq_len x hidden_size), tuple_len = (1+layer12)
-        return out_features if return_all else out_features[-1]
+        final_out_features = out_features if return_all else out_features[-1]
+        out_attentions = outputs.attentions if return_all else outputs.attentions[-1]
+        if output_attentions:
+            return final_out_features, out_attentions
+        else:
+            return final_out_features
