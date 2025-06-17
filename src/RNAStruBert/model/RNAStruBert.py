@@ -93,5 +93,9 @@ class RNAStruBert_for_cls(nn.Module):
         return logits
 
 
-def get_RNAStruBert_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, *args, **kargs):
-    return RNAStruBert_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, *args, **kargs)
+def get_RNAStruBert_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, freeze_base=True, *args, **kargs):
+    model = RNAStruBert_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, *args, **kargs)
+    if freeze_base:
+        for name, para in model.RNAStruBert.named_parameters():
+            para.requires_grad = False
+    return model
