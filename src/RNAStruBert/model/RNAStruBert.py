@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from transformers import LlamaConfig, BertConfig
 from transformers import LlamaForCausalLM, LlamaModel, BertForMaskedLM
@@ -36,7 +37,7 @@ def get_llama_causal_model(dim, layer, from_pretrained, tokenizer):
     return get_llama_model(dim, layer, from_pretrained, tokenizer, model_class=LlamaForCausalLM)
 
 
-def get_bert(dim, layer, from_pretrained=None, tokenizer=None, model_class=BertForMaskedLM, max_length=514, *args, **kwargs):
+def get_bert(dim, layer, from_pretrained=None, tokenizer=None, model_class=BertForMaskedLM, max_length=514, pretrained_length=None, *args, **kwargs):
     if tokenizer is None:
         from ..data.tokenizer import get_mlm_tokenizer
         tokenizer = get_mlm_tokenizer(max_length=max_length)
@@ -56,7 +57,21 @@ def get_bert(dim, layer, from_pretrained=None, tokenizer=None, model_class=BertF
          **kwargs,
     )
     if from_pretrained:
-        return model_class.from_pretrained(from_pretrained, config=model_config)
+        if pretrained_length and pretrained_length<tokenizer.model_max_length:
+            model = model_class(model_config)
+            ori_model = model_class.from_pretrained(from_pretrained)
+            state_dict = ori_model.state_dict()
+            del state_dict["bert.embeddings.position_embeddings.weight"]  # del pos embed weight
+            model.load_state_dict(state_dict, strict=False)
+
+            # deal with extended pos emb
+            ori_pos_emb = ori_model.bert.embeddings.position_embeddings.weight.data
+            new_pos_emb = torch.randn(tokenizer.model_max_length, 768) 
+            new_pos_emb[:pretrained_length] = ori_pos_emb  
+            model.bert.embeddings.position_embeddings.weight.data = new_pos_emb
+            return model
+        else:
+            return model_class.from_pretrained(from_pretrained, config=model_config)
     else:
         return model_class(config=model_config)
 
@@ -67,8 +82,8 @@ class RNAStruBert(BertForMaskedLM):
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, labels=labels, *args, **kargs)
 
 
-def get_RNAStruBert(dim=768, layer=12, from_pretrained=None, tokenizer=None, *args, **kargs):
-    return get_bert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, model_class=RNAStruBert, *args, **kargs)
+def get_RNAStruBert(dim=768, layer=12, from_pretrained=None, tokenizer=None, pretrained_length=None, *args, **kargs):
+    return get_bert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, model_class=RNAStruBert, pretrained_length=pretrained_length, *args, **kargs)
 
 
 class RNAStruBert_for_cls(nn.Module):
