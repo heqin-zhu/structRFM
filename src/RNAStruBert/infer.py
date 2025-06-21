@@ -69,7 +69,7 @@ class RNAStruBert_infer:
 
 
     @torch.no_grad()
-    def model_forward(self, seq, return_inputs=False, is_cal_loss=False, output_attentions=False):
+    def model_forward(self, seq, return_inputs=False, is_cal_loss=False, output_attentions=False, is_training=False):
         '''
             Get model outputs.
             seq: str
@@ -77,7 +77,10 @@ class RNAStruBert_infer:
             return outputs, (inputs): dict, (Tensor)
                 {'logits': logits, 'hidden_states': hidden_states', 'attentions': attentions}
         '''
-        self.model.eval()
+        if is_training:
+            self.model.train()
+        else:
+            self.model.eval()
         text = process_mlm_input_seq(seq)
         inputs = self.tokenizer(text, return_tensors='pt')
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
@@ -89,7 +92,7 @@ class RNAStruBert_infer:
             return outputs
 
 
-    def extract_feature(self, seq, include_special=True, return_all=False, output_attentions=False):
+    def extract_feature(self, seq, include_special=True, return_all=False, output_attentions=False, is_training=False):
         '''
             Extract hidden feature of input seq.
             seq: str
@@ -98,7 +101,7 @@ class RNAStruBert_infer:
                (all_layers=13) x seq_len x hidden_size768
         '''
         attention = None
-        outputs = self.model_forward(seq, output_attentions=True)
+        outputs = self.model_forward(seq, output_attentions=True, is_training=is_training)
         hidden_states = outputs.hidden_states  # tuple(B x (seq_len+2) x hidden_size768), tuple_len = (1+layer12) 
         ## batch_size = 1, use the first one 0 of this batch
         sls = slice(None, None) if include_special else slice(1, -1)
