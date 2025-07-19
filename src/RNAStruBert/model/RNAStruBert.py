@@ -87,7 +87,10 @@ def get_RNAStruBert(dim=768, layer=12, from_pretrained=None, tokenizer=None, pre
 
 
 class RNAStruBert_for_cls(nn.Module):
-    def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None):
+    def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, use_mean_feature=False):
+        '''
+            use mean seq feature instead of cls token for classification.
+        '''
         super(RNAStruBert_for_cls, self).__init__()
         self.RNAStruBert = get_RNAStruBert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, output_hidden_states=True)
         self.cls = nn.Sequential(
@@ -97,19 +100,23 @@ class RNAStruBert_for_cls(nn.Module):
                 nn.Dropout(0.1),
                 nn.Linear(in_features=dim, out_features=num_class),
         )
+        self.use_mean_feature = use_mean_feature
 
     def forward(self, input_ids, attention_mask=None):
         outputs = self.RNAStruBert(
             input_ids=input_ids,
             attention_mask=attention_mask
         )
-        cls_hidden = outputs.hidden_states[-1][:, 0, :]
+        if self.use_mean_feature:
+            cls_hidden = outputs.hidden_states[-1][:, 1:-1, :].mean(dim=1)
+        else:
+            cls_hidden = outputs.hidden_states[-1][:, 0, :]
         logits = self.cls(cls_hidden)
         return logits
 
 
-def get_RNAStruBert_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, freeze_base=True, *args, **kargs):
-    model = RNAStruBert_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, *args, **kargs)
+def get_RNAStruBert_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, freeze_base=True, use_mean_feature=False, *args, **kargs):
+    model = RNAStruBert_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, use_mean_feature=use_mean_feature, *args, **kargs)
     if freeze_base:
         for name, para in model.RNAStruBert.named_parameters():
             para.requires_grad = False
