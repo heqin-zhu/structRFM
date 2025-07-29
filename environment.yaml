@@ -1,4 +1,4 @@
-name: RNAStruBert
+name: SgRFM
 channels:
   - pytorch
   - nvidia

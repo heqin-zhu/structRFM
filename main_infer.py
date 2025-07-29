@@ -1,7 +1,7 @@
 from transformers import Trainer, TrainingArguments
 
-from src.RNAStruBert.infer import RNAStruBert_infer, save_seqs_to_csv
-from src.RNAStruBert.data import preprocess_and_load_dataset
+from src.SgRFM.infer import SgRFM_infer, save_seqs_to_csv
+from src.SgRFM.data import preprocess_and_load_dataset
 
 
 if __name__ == '__main__':
@@ -17,8 +17,8 @@ if __name__ == '__main__':
     '''
 
     # model init
-    from_pretrained = '/public/share/heqinzhu_share/RNAStruBert/checkpoint-1174460'
-    model_mlm = RNAStruBert_infer(from_pretrained=from_pretrained, max_length=514)
+    from_pretrained = '/public/share/heqinzhu_share/SgRFM/checkpoint-1174460'
+    model_mlm = SgRFM_infer(from_pretrained=from_pretrained, max_length=514)
 
     # func: unmask
     unmasked_seq, pred_tokens, top_tokens_list = model_mlm.unmask('A[mask]GUAGUAGUCCCG[mask]AAUG', top_k=2)

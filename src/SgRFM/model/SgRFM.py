@@ -76,23 +76,23 @@ def get_bert(dim, layer, from_pretrained=None, tokenizer=None, model_class=BertF
         return model_class(config=model_config)
 
 
-class RNAStruBert(BertForMaskedLM):
+class SgRFM(BertForMaskedLM):
     # NOTICE: explicitly define the `labels` para, not rely on kargs, otherwise the `labels` para won't be correctly passed and the model won't return `eval_loss` when saving checkpoint.
     def forward(self, input_ids, attention_mask, labels=None, connects=None, *args, **kargs):
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, labels=labels, *args, **kargs)
 
 
-def get_RNAStruBert(dim=768, layer=12, from_pretrained=None, tokenizer=None, pretrained_length=None, *args, **kargs):
-    return get_bert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, model_class=RNAStruBert, pretrained_length=pretrained_length, *args, **kargs)
+def get_SgRFM(dim=768, layer=12, from_pretrained=None, tokenizer=None, pretrained_length=None, *args, **kargs):
+    return get_bert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, model_class=SgRFM, pretrained_length=pretrained_length, *args, **kargs)
 
 
-class RNAStruBert_for_cls(nn.Module):
+class SgRFM_for_cls(nn.Module):
     def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, use_mean_feature=False):
         '''
             use mean seq feature instead of cls token for classification.
         '''
-        super(RNAStruBert_for_cls, self).__init__()
-        self.RNAStruBert = get_RNAStruBert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, output_hidden_states=True)
+        super(SgRFM_for_cls, self).__init__()
+        self.SgRFM = get_SgRFM(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, output_hidden_states=True)
         self.cls = nn.Sequential(
                 nn.Linear(in_features=dim, out_features=dim),
                 nn.GELU(),
@@ -103,7 +103,7 @@ class RNAStruBert_for_cls(nn.Module):
         self.use_mean_feature = use_mean_feature
 
     def forward(self, input_ids, attention_mask=None):
-        outputs = self.RNAStruBert(
+        outputs = self.SgRFM(
             input_ids=input_ids,
             attention_mask=attention_mask
         )
@@ -115,9 +115,9 @@ class RNAStruBert_for_cls(nn.Module):
         return logits
 
 
-def get_RNAStruBert_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, freeze_base=True, use_mean_feature=False, *args, **kargs):
-    model = RNAStruBert_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, use_mean_feature=use_mean_feature, *args, **kargs)
+def get_SgRFM_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, freeze_base=True, use_mean_feature=False, *args, **kargs):
+    model = SgRFM_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, use_mean_feature=use_mean_feature, *args, **kargs)
     if freeze_base:
-        for name, para in model.RNAStruBert.named_parameters():
+        for name, para in model.SgRFM.named_parameters():
             para.requires_grad = False
     return model

@@ -45,7 +45,7 @@ if [ "$mlm_structure" = true ]; then
 fi
 
 USER_DIR=/heqinzhu
-PROGRAM_DIR=$USER_DIR/gitrepo/LLM/RNAStruBert
+PROGRAM_DIR=$USER_DIR/gitrepo/LLM/SgRFM
 DATA_DIR=$USER_DIR/gitrepo/LLM/RNAcentral/RNAcentral_BPfold_SS
 OUT_DIR=$USER_DIR/runs
 

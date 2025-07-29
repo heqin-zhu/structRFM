@@ -9,7 +9,7 @@ from tqdm import tqdm
 import pandas as pd
 from scipy.stats import spearmanr
 
-from src.RNAStruBert.infer import RNALM_MLM, save_seqs_to_csv
+from src.SgRFM.infer import SgRFM_infer, save_seqs_to_csv
 
 
 @torch.no_grad()
@@ -60,7 +60,7 @@ def evaluate_all(model_paths, data_dir, dest_dir='.'):
         names = df['name'].tolist() if 'name' in df.columns else list(range(1, 1+len(seqs)))
         data = {'name': names}
         for model_path in model_paths:
-            model_mlm = RNALM_MLM(from_pretrained=model_path, max_length=514, device=device)
+            model_mlm = SgRFM_infer(from_pretrained=model_path, max_length=514, device=device)
             tokenizer = AutoTokenizer.from_pretrained(model_path)
             model_name = os.path.basename(model_path)
             # lls = cal_likelihood(seqs, model_mlm)
