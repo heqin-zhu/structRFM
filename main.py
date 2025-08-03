@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from src.SgRFM.pretrain import run_pretrain
+from src.structRFM.pretrain import run_pretrain
 
 
 if __name__ == '__main__':

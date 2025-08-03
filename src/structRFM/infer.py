@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from .model import get_SgRFM
+from .model import get_structRFM
 from .data.tokenizer import get_mlm_tokenizer
 from .data.RNAdata import preprocess_and_load_dataset, process_mlm_input_seq
 
@@ -14,14 +14,14 @@ def save_seqs_to_csv(path, seqs, names=None):
     df.to_csv(path, index=False)
 
 
-class SgRFM_infer:
+class structRFM_infer:
     def __init__(self, from_pretrained, max_length=514, dim=768, layer=12, output_hidden_states=True, device=None):
         # set output_hidden_states=True to get the hidden states (features)
 
         # self.tokenizer = AutoTokenizer(from_pretrained)
         # self.model = AutoModel.from_pretrained(from_pretrained, output_hidden_states=True) # why won't output logtits?
         self.tokenizer = get_mlm_tokenizer(max_length=max_length)
-        self.model = get_SgRFM(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
+        self.model = get_structRFM(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
         if device is None:
             if torch.cuda.is_available():
                 self.model.cuda()

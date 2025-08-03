@@ -1,4 +1,4 @@
-name: SgRFM
+name: structRFM
 channels:
   - pytorch
   - nvidia

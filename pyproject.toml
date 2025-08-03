@@ -3,13 +3,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "SgRFM"
+name = "structRFM"
 dynamic = ["version"]
 readme = "README.md"
 authors = [
   { name="Heqin Zhu", email="zhuheqin1@gmail.com" },
 ]
-description = "Structure-aware RNA language pretraining."
+description = "Structure-guided RNA foundation model."
 requires-python = ">=3.8"
 license = { file = "LICENSE" }
 classifiers = [
@@ -21,11 +21,11 @@ dependencies = [
 #    "torch >= 2.0.1",
 ]
 
-keywords = ["RNA", "secondary structure", "language model"]
+keywords = ["RNA", "secondary structure", "language model", "tertiary structure prediction", 'splice site prediction', 'IRES identification', 'multi-modal language model']
 
 [project.urls]
-Homepage = "https://github.com/heqin-zhu/SgRFM"
-Issues = "https://github.com/heqin-zhu/SgRFM/issues"
+Homepage = "https://github.com/heqin-zhu/structRFM"
+Issues = "https://github.com/heqin-zhu/structRFM/issues"
 
 [project.scripts]
 
@@ -33,7 +33,7 @@ Issues = "https://github.com/heqin-zhu/SgRFM/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"SgRFM.data" = ["*.json"]
+"structRFM.data" = ["*.json"]
 
 [tool.setuptools.dynamic]
-version = {attr = "SgRFM.__version__"}  # any module attribute compatible with ast.literal_eval
+version = {attr = "structRFM.__version__"}  # any module attribute compatible with ast.literal_eval

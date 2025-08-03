@@ -7,7 +7,7 @@ import tensorboard
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
 
-from .model import get_SgRFM, get_llama_causal_model
+from .model import get_structRFM, get_llama_causal_model
 from .data import get_mlm_tokenizer, get_ar_tokenizer, preprocess_and_load_dataset, PretrainDataCollatorWithStructure
 
 
@@ -54,10 +54,9 @@ def pretrain(args, tag):
         tokenizer = get_ar_tokenizer(max_length=args.max_length)
 
     model = None
-    model_name = ''
     if tag=='mlm':
-        model = get_SgRFM(args.dim, args.layer, args.from_pretrained, tokenizer)
-        model_name = 'bert'
+        model = get_structRFM(args.dim, args.layer, args.from_pretrained, tokenizer)
+        model_name = 'structRFM'
     else:
         model = get_llama_causal_model(args.dim, args.layer, args.from_pretrained, tokenizer)
         model_name = 'llama'

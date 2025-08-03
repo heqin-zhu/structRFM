@@ -1,0 +1,1 @@
+from .structRFM import *
