@@ -1,6 +1,6 @@
 <p align="center">
 
-  <h1 align="center">Structure-guided RNA foundation model for robust structure and function inference</h1>
+  <h1 align="center">A fully-open structure-guided RNA foundation model for robust structural and functional inference</h1>
   <p align="center">
     <a href="https://heqin-zhu.github.io/"><strong>Heqin Zhu</strong></a>
     ·
@@ -9,13 +9,17 @@
     <a href="https://zaixizhang.github.io/"><strong>Zaixi Zhang</strong></a>
     ·
     <strong>Feng Zhang</strong>
-    ·
+    <br>
+
     <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a>
     ·
     <strong>Tong Ye</strong>
     ·
     <strong>Yunjie Gu</strong>
     ·
+    <strong>Xin Li</strong>
+    <br>
+
     <a href="https://bme.ustc.edu.cn/2023/0322/c28131a596069/page.htm"><strong>Peng Xiong*</strong></a>
     ·
     <a href="https://scholar.google.com/citations?user=8eNm2GMAAAAJ"><strong>S. Kevin Zhou*</strong></a>
@@ -25,7 +29,7 @@
     <img src="images/Fig1.png", width="800">
   </div>
   <p align="center">
-    <a href="https://www.nature.com/articles/s41467-025-60048-1.pdf">PDF</a> |
+    <a href="">PDF</a> |
     <a href="https://github.com/heqin-zhu/structRFM">GitHub</a> |
     <a href="https://pypi.org/project/structRFM">PyPI</a>
   </p>
