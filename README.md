@@ -156,7 +156,7 @@ Download all data from [Google Drive]() and place them into corresponding folder
     - [Tertiary structure prediction](tasks/Zfold)
 - Function prediction
     - [ncRNA classification](tasks/seqcls_ssp)
-    - [Splice site prediction](tasks/SPL)
+    - [Splice site prediction](tasks/splice_site_prediction)
     - [IRES identification](IRES)
 
 ## Acknowledgement

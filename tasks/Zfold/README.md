@@ -12,7 +12,7 @@ For RNA tertiary structure prediction.
 
 ## Installation
 ```shell
-conda env create -f linux-cu102.yml
+conda env create -f Zfold_environment.yaml
 conda activate Zfold
 conda install -y pyrosetta
 ```
@@ -20,8 +20,8 @@ conda install -y pyrosetta
 ## Train
 ```shel
 cd `src/Zfold/training`
+# Modify run.sh
+bash ./run.sh
 ```
-Modify `run.sh` and run `run.sh`
-
 ## Eval
 Prepare data as `DATA_DIR` and `PREFIX` specified in `eval.py`, then run `eval.py`

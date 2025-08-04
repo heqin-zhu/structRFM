@@ -8,5 +8,5 @@
     - Tertiary structure prediction: [Zfold](Zfold)
 - Function prediction
     - ncRNA classification: [seqcls_ssp](seqcls_ssp)
-    - Splice site prediction: [SPL](SPL)
+    - Splice site prediction: [splice_site_prediction](splice_site_prediction)
     - IRES identification: [IRES](IRES)
