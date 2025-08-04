@@ -8,18 +8,14 @@
     ·
     <a href="https://zaixizhang.github.io/"><strong>Zaixi Zhang</strong></a>
     ·
-    <strong>Feng Zhang</strong>
-    <br>
-
+    <strong>Feng Zhang</strong><br>
     <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a>
     ·
     <strong>Tong Ye</strong>
     ·
     <strong>Yunjie Gu</strong>
     ·
-    <strong>Xin Li</strong>
-    <br>
-
+    <strong>Xin Li</strong><br>
     <a href="https://bme.ustc.edu.cn/2023/0322/c28131a596069/page.htm"><strong>Peng Xiong*</strong></a>
     ·
     <a href="https://scholar.google.com/citations?user=8eNm2GMAAAAJ"><strong>S. Kevin Zhou*</strong></a>
