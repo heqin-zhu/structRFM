@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Tuple
 from warnings import warn
@@ -620,7 +621,7 @@ class structRFMForNucleotideLevel(structRFMPreTrainedModel):
         # self.structRFM = BertForMaskedLM(self.config)
         # self.structRFM = BertForMaskedLM(config) 
 
-        model_path = '/public/share/heqinzhu_share/structRFM/checkpoint-2516835'
+        model_path = os.getenv('structRFM_checkpoint')
         self.bert = AutoModel.from_pretrained(model_path)
        
         self.tokenizer = tokenizer

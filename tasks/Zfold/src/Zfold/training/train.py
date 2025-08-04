@@ -39,7 +39,7 @@ group.add_argument('-lst', '--lst',
                    help='Text file storing the list of training samples (default:use all samples in `npz_dir`)')
 group.add_argument('--LM_path',
                    type=str,
-                   default='/public/share/heqinzhu_share/structRFM/checkpoint-2516835',
+                   default=os.getenv('structRFM_checkpoint'),
                   )
 group.add_argument('--msa_cutoff', type=int, default=200)
 group.add_argument('-init_lr', '--init_lr',
