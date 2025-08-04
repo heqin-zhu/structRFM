@@ -48,7 +48,6 @@
     * [Download pretrained structRFM](#download-pretrained-structrfm)
     * [Extract RNA sequence features](#extract-rna-sequence-features)
 * [Downstream Tasks](#downstream-tasks)
-    * [Data preparation](#data-preparation)
 * [Acknowledgement](#acknowledgement)
 * [LICENSE](#license)
 * [Citation](#citation)
@@ -79,11 +78,15 @@ conda activate structRFM
 ```shell
 pip3 install structRFM
 ```
-3. Download [checkpoint](https://github.com/heqin-zhu/BPfold/releases/latest/download/model_predict.tar.gz) in [releases](https://github.com/heqin-zhu/BPfold/releases) and decompress it.
-%TODO
+3. Download pretrained structRFM: [Google Drive]() | [releases](https://github.com/heqin-zhu/structRFM/releases).
 ```shell
-wget https://github.com/heqin-zhu/BPfold/releases/latest/download/model_predict.tar.gz
-tar -xzf model_predict.tar.gz
+wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
+tar -xzf structRFM_checkpoint.tar.gz
+%TODO
+```
+4. Set environment varible `structRFM_checkpoint`.
+```shell
+export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent setting
 ```
 
 ## Pretraining
@@ -106,9 +109,11 @@ bash ./run.sh --print --batch_size 128 --epoch 100 --lr 0.0001 --tag mlm --mlm_s
 <summary>demo.py</summary>
 
 ```python
+import os
+
 from structRFM.infer import structRFM_infer
 
-from_pretrained = 'structRFM_checkpoint # TODO, update checkpoint path
+from_pretrained = os.getenv('structRFM_checkpoint')
 model = structRFM_infer(from_pretrained=from_pretrained, max_length=514)
 
 seq = 'AGUACGUAGUA'
@@ -141,21 +146,18 @@ print('attentions', len(attentions), attentions[0].shape)
 </details>
 
 ## Downstream Tasks
+Download all data from [Google Drive]() and place them into corresponding folder of each task.
 
-### Data preparation
-You can download training data from [Google Drive](https://drive.google.com/drive/folders/1XUBVXAUyIB6NqWmwEdLLlnWFaoU_l3XN?usp=sharing) and unzip and place them in the `./data/ft/ssp` folder. Two tasks (RNAStrAlign-ArchiveII, bpRNA1m) are available for this task.
-
-
-- [Zero-shot inference](tasks/zeroshot)
-    - Zero-shot homology classfication
-    - Zero-shot secondary structure prediction
+- Zero-shot inference
+    - [Zero-shot homology classfication](tasks/zeroshot)
+    - [Zero-shot secondary structure prediction](tasks/zeroshot)
 - Structure prediction
     - [Secondary structure prediction](tasks/seqcls_ssp)
-    - [Tertiary structure prediction]()
+    - [Tertiary structure prediction](tasks/Zfold)
 - Function prediction
     - [ncRNA classification](tasks/seqcls_ssp)
-    - [Splice site prediction]()
-    - [IRES identification]()
+    - [Splice site prediction](tasks/SPL)
+    - [IRES identification](IRES)
 
 ## Acknowledgement
 We appreciate the following open-source projects for their valuable contributions:
