@@ -248,7 +248,7 @@ if __name__ == '__main__':
     # gt_pair_mode = 'non-canonical' # 'all', 'non-canonical', 'canonical'
 
     run_name = 'structRFM-wo-thresh' if postprocess_wo_thresh else 'structRFM'
-    from_pretrained = '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint'
+    from_pretrained = os.getenv('structRFM_checkpoint', '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
     
     val_file = 'VL_40_key_seq_contact_idx.pkl'
     val_file = 'dbn_PDB_test.txt'

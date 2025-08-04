@@ -27,7 +27,7 @@ print(f'当前可用 CPU 核心数: {num_cores}')
 ## single processing 
 
 if __name__ == '__main__':
-    from_pretrained = '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint'
+    from_pretrained = os.getenv('structRFM_checkpoint', '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
     model = structRFM_infer(from_pretrained=from_pretrained, max_length=514, device='cuda:7')
     prefix = '.'
 

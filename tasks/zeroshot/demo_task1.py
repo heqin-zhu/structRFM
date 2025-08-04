@@ -172,7 +172,7 @@ def process_one_sequence(args):
 
 
 if __name__ == '__main__':
-    from_pretrained = '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint'
+    from_pretrained = os.getenv('structRFM_checkpoint', '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
     prefix = '.'
 
     # CPU number 
