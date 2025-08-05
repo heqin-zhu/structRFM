@@ -82,17 +82,17 @@ class structRFM(BertForMaskedLM):
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, labels=labels, *args, **kargs)
 
 
-def get_structRFM(dim=768, layer=12, from_pretrained=None, tokenizer=None, pretrained_length=None, *args, **kargs):
+def get_structRFM(dim=768, layer=12, from_pretrained=None, max_length=514, pretrained_length=None, tokenizer=None, pretrained_length=None, *args, **kargs):
     return get_bert(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, model_class=structRFM, pretrained_length=pretrained_length, *args, **kargs)
 
 
 class structRFM_for_cls(nn.Module):
-    def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, use_mean_feature=False):
+    def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, max_length=514, pretrained_length=None, tokenizer=None, use_mean_feature=False):
         '''
             use mean seq feature instead of cls token for classification.
         '''
         super(structRFM_for_cls, self).__init__()
-        self.structRFM = get_structRFM(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, output_hidden_states=True)
+        self.structRFM = get_structRFM(dim=dim, layer=layer, from_pretrained=from_pretrained, max_length=max_length, pretrained_length=pretrained_length, tokenizer=tokenizer, output_hidden_states=True)
         self.cls = nn.Sequential(
                 nn.Linear(in_features=dim, out_features=dim),
                 nn.GELU(),
@@ -115,8 +115,8 @@ class structRFM_for_cls(nn.Module):
         return logits
 
 
-def get_structRFM_for_cls(num_class, dim=768, layer=12, from_pretrained=None, tokenizer=None, freeze_base=True, use_mean_feature=False, *args, **kargs):
-    model = structRFM_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=tokenizer, use_mean_feature=use_mean_feature, *args, **kargs)
+def get_structRFM_for_cls(num_class, dim=768, layer=12, from_pretrained=None, max_length=514, pretrained_length=None, tokenizer=None, freeze_base=True, use_mean_feature=False, *args, **kargs):
+    model = structRFM_for_cls(num_class=num_class, dim=dim, layer=layer, from_pretrained=from_pretrained, max_length=max_length, pretrained_length=pretrained_length, tokenizer=tokenizer, use_mean_feature=use_mean_feature, *args, **kargs)
     if freeze_base:
         for name, para in model.structRFM.named_parameters():
             para.requires_grad = False

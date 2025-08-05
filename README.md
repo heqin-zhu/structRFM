@@ -6,16 +6,15 @@
     ·
     <a href=""><strong>Ruifeng Li</strong></a>
     ·
-    <a href="https://zaixizhang.github.io/"><strong>Zaixi Zhang</strong></a>
-    ·
-    <strong>Feng Zhang</strong><br>
-    <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a>
+    <!-- <a href="https://zaixizhang.github.io/"><strong>Zaixi Zhang</strong></a> · -->
+    <strong>Feng Zhang</strong>
+    <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a><br>
     ·
     <strong>Tong Ye</strong>
     ·
-    <strong>Yunjie Gu</strong>
+    <strong>Xin Li</strong>
     ·
-    <strong>Xin Li</strong><br>
+    <strong>Yunjie Gu</strong>
     <a href="https://bme.ustc.edu.cn/2023/0322/c28131a596069/page.htm"><strong>Peng Xiong*</strong></a>
     ·
     <a href="https://scholar.google.com/citations?user=8eNm2GMAAAAJ"><strong>S. Kevin Zhou*</strong></a>
