@@ -16,8 +16,9 @@ from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls
 
 
 import sys
-from structRFM.model import get_structRFM_for_cls
-from structRFM.data import get_mlm_tokenizer
+sys.path.append('../../')
+from src.structRFM.model import get_structRFM_for_cls
+from src.structRFM.data import get_mlm_tokenizer
 
 # ========== Define constants
 MODELS = ["RNABERT", "RNAMSM", "RNAFM", 'structRFM']
@@ -114,9 +115,9 @@ if __name__ == "__main__":
     if args.max_seq_len == 0:
         args.max_seq_len = MAX_SEQ_LEN[args.model_name]
         if args.dataset == 'lncRNA_H':
-            args.max_seq_len = 3000
+            args.max_seq_len = 2000
         elif args.dataset == 'lncRNA_M':
-            args.max_seq_len = 6144
+            args.max_seq_len = 2000
 
     # ========== args check
     assert args.replace_T ^ args.replace_U, "Only replace T or U."
