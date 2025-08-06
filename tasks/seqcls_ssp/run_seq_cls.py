@@ -158,7 +158,7 @@ if __name__ == "__main__":
         model = RNAFmForSeqCls(model)
     elif args.model_name == "structRFM":
         from_pretrained = args.LM_path
-        if args.dataset in ['lncRNA_H', 'lncRNA_M', 'lncRNA_H_uni']:
+        if args.max_seq_len+2>514:
             tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
             model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, tokenizer=tokenizer, pretrained_length=514, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature)
         else:

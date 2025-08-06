@@ -8,8 +8,8 @@
     ·
     <!-- <a href="https://zaixizhang.github.io/"><strong>Zaixi Zhang</strong></a> · -->
     <strong>Feng Zhang</strong>
-    <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a><br>
     ·
+    <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a><br>
     <strong>Tong Ye</strong>
     ·
     <strong>Xin Li</strong>
@@ -41,7 +41,6 @@
 * [Pretraining](#pretraining)
     * [Download sequence-structure dataset](#download-sequence-structure-dataset)
     * [Run pretraining](#run-pretraining)
-    * [Download pretrained structRFM](#download-pretrained-structrfm)
     * [Extract RNA sequence features](#extract-rna-sequence-features)
 * [Downstream Tasks](#downstream-tasks)
 * [Acknowledgement](#acknowledgement)
@@ -60,7 +59,7 @@ RNA language models have achieved strong performance across diverse downstream t
 - anaconda
 
 ### Instructions
-0. Clone this repo
+0. Clone this repo.
 ```shell
 git clone git@github.com:heqin-zhu/structRFM.git
 cd structRFM
@@ -70,15 +69,14 @@ cd structRFM
 conda env create -f environment.yaml
 conda activate structRFM
 ```
-2. Install structRFM
+2. Install structRFM.
 ```shell
 pip3 install structRFM
 ```
-3. Download pretrained structRFM: [Google Drive]() | [releases](https://github.com/heqin-zhu/structRFM/releases).
+3. Download and decompress pretrained structRFM (305 M).
 ```shell
 wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
-tar -xzf structRFM_checkpoint.tar.gz
-%TODO
+tar -xzf model_predict.tar.gz
 ```
 4. Set environment varible `structRFM_checkpoint`.
 ```shell
@@ -88,7 +86,7 @@ export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent 
 ## Pretraining
 
 ### Download sequence-structure dataset
-The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Google Drive]() or [releases from]().
+The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Zenodo](https://doi.org/10.5281/zenodo.16754363) (4.5 GB).
 
 ### Run pretraining
 Modify variables `USER_DIR`, `PROGRAM_DIR`, `DATA_DIR`, and `OUT_DIR` in `run.sh`, then run:
@@ -96,10 +94,6 @@ Modify variables `USER_DIR`, `PROGRAM_DIR`, `DATA_DIR`, and `OUT_DIR` in `run.sh
 ```bash
 bash ./run.sh --print --batch_size 128 --epoch 100 --lr 0.0001 --tag mlm --mlm_structure
 ```
-
-### Download pretrained structRFM
-- structRFM used in the paper: [Google Drive]() | [releases]()
-- structRFM with longer pretraining time: [Google Drive]() | [releases]()
 
 ### Extract RNA sequence features
 
@@ -145,7 +139,7 @@ print('attentions', len(attentions), attentions[0].shape)
 </details>
 
 ## Downstream Tasks
-Download all data from [Google Drive]() and place them into corresponding folder of each task.
+Download all data (3.7 GB) and checkpoints (2.2 GB) from [Zenodo](https://doi.org/10.5281/zenodo.16754363), and then place them into corresponding folder of each task.
 
 - Zero-shot inference
     - [Zero-shot homology classfication](tasks/zeroshot)
@@ -173,5 +167,15 @@ We appreciate the following open-source projects for their valuable contribution
 ## Citation
 If you find our work helpful, please cite our paper:
 ```bibtex
-# TODO
+@article {structRFM,
+    author = {Zhu, Heqin and Li, Ruifeng and Zhang, Feng and Tang, Fenghe and Ye, Tong and Li, Xin and Gu, Yunjie and Xiong, Peng and Zhou, S. Kevin},
+    title = {A fully open structure-guided RNA foundation model for robust structural and functional inference},
+    elocation-id = {2025.08.06.668731},
+    year = {2025},
+    doi = {10.1101/2025.08.06.668731},
+    publisher = {Cold Spring Harbor Laboratory},
+    URL = {https://www.biorxiv.org/content/early/2025/08/06/2025.08.06.668731},
+    journal = {bioRxiv}
+}
+
 ```
