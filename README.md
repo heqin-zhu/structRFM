@@ -91,9 +91,12 @@ export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent 
 The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Google Drive]() or [releases from]().
 
 ### Run pretraining
+Modify variables `USER_DIR`, `PROGRAM_DIR`, `DATA_DIR`, and `OUT_DIR` in `run.sh`, then run:
+
 ```bash
 bash ./run.sh --print --batch_size 128 --epoch 100 --lr 0.0001 --tag mlm --mlm_structure
 ```
+
 ### Download pretrained structRFM
 - structRFM used in the paper: [Google Drive]() | [releases]()
 - structRFM with longer pretraining time: [Google Drive]() | [releases]()

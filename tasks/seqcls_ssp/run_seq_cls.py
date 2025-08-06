@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import torch
 from torch.optim import AdamW
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
@@ -171,8 +172,9 @@ if __name__ == "__main__":
     else:
         raise ValueError("Unknown model name: {}".format(args.model_name))
 
-    args.device = get_and_set_device(args.device)
-
+    args.device = torch.device(args.device)
+    if torch.cuda.device_count()>1:
+        model = torch.nn.DataParallel(model)
     model.to(args.device)
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(
