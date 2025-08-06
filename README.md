@@ -1,6 +1,6 @@
 <p align="center">
 
-  <h1 align="center">A fully-open structure-guided RNA foundation model for robust structural and functional inference</h1>
+  <h1 align="center">A fully open structure-guided RNA foundation model for robust structural and functional inference</h1>
   <p align="center">
     <a href="https://heqin-zhu.github.io/"><strong>Heqin Zhu</strong></a>
     ·
@@ -15,6 +15,7 @@
     <strong>Xin Li</strong>
     ·
     <strong>Yunjie Gu</strong>
+    ·
     <a href="https://bme.ustc.edu.cn/2023/0322/c28131a596069/page.htm"><strong>Peng Xiong*</strong></a>
     ·
     <a href="https://scholar.google.com/citations?user=8eNm2GMAAAAJ"><strong>S. Kevin Zhou*</strong></a>

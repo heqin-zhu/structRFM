@@ -2,12 +2,12 @@ import collections
 import argparse
 import numpy as np
 import json
-from attrdict import AttrDict
 
 import torch
 
 
 def get_config(file_path):
+    from attrdict import AttrDict
     config_file = file_path  # "./weights/bert_config.json"
     json_file = open(config_file, 'r')
     json_object = json.load(json_file)

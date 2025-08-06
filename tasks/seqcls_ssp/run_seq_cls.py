@@ -16,7 +16,7 @@ from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls
 
 
 import sys
-sys.path.append('../../')
+sys.path.append('../..')
 from src.structRFM.model import get_structRFM_for_cls
 from src.structRFM.data import get_mlm_tokenizer
 
@@ -28,7 +28,7 @@ MAX_SEQ_LEN = {"RNABERT": 440,
                "structRFM": 512,
               }
 
-TASKS = ["nRC", "lncRNA_H", "lncRNA_M", 'IRES']
+TASKS = ["nRC", "lncRNA_H", "lncRNA_M", 'IRES', 'lncRNA_H_uni']
 LABEL2ID = {
     "nRC": {
         "5S_rRNA": 0,
@@ -46,6 +46,10 @@ LABEL2ID = {
         "miRNA": 12
     },
     "lncRNA_H": {
+        "lnc": 0,
+        "pc": 1
+    },
+    "lncRNA_H_uni": {
         "lnc": 0,
         "pc": 1
     },
@@ -115,9 +119,9 @@ if __name__ == "__main__":
     if args.max_seq_len == 0:
         args.max_seq_len = MAX_SEQ_LEN[args.model_name]
         if args.dataset == 'lncRNA_H':
-            args.max_seq_len = 2000
+            args.max_seq_len = 3000
         elif args.dataset == 'lncRNA_M':
-            args.max_seq_len = 2000
+            args.max_seq_len = 6000
 
     # ========== args check
     assert args.replace_T ^ args.replace_U, "Only replace T or U."
@@ -153,8 +157,8 @@ if __name__ == "__main__":
         model = RNAFmForSeqCls(model)
     elif args.model_name == "structRFM":
         from_pretrained = args.LM_path
-        if args.dataset in ['lncRNA_H', 'lncRNA_M']:
-            tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len)
+        if args.dataset in ['lncRNA_H', 'lncRNA_M', 'lncRNA_H_uni']:
+            tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
             model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, tokenizer=tokenizer, pretrained_length=514, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature)
         else:
             if args.use_automodelforseqcls:
