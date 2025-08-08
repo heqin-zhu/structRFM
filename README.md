@@ -4,7 +4,7 @@
   <p align="center">
     <a href="https://heqin-zhu.github.io/"><strong>Heqin Zhu</strong></a>
     ·
-    <a href=""><strong>Ruifeng Li</strong></a>
+    <strong>Ruifeng Li</strong>
     ·
     <!-- <a href="https://zaixizhang.github.io/"><strong>Zaixi Zhang</strong></a> · -->
     <strong>Feng Zhang</strong>
@@ -25,7 +25,8 @@
     <img src="images/Fig1.png", width="800">
   </div>
   <p align="center">
-    <a href="">PDF</a> |
+    <a href="https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731">bioRxiv</a> |
+    <a href="https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731.full.pdf">PDF</a> |
     <a href="https://github.com/heqin-zhu/structRFM">GitHub</a> |
     <a href="https://pypi.org/project/structRFM">PyPI</a>
   </p>
@@ -166,16 +167,16 @@ We appreciate the following open-source projects for their valuable contribution
 
 ## Citation
 If you find our work helpful, please cite our paper:
+
 ```bibtex
 @article {structRFM,
-    author = {Zhu, Heqin and Li, Ruifeng and Zhang, Feng and Tang, Fenghe and Ye, Tong and Li, Xin and Gu, Yunjie and Xiong, Peng and Zhou, S. Kevin},
-    title = {A fully open structure-guided RNA foundation model for robust structural and functional inference},
+    author = {Zhu, Heqin and Li, Ruifeng and Zhang, Feng and Tang, Fenghe and Ye, Tong and Li, Xin and Gu, Yujie and Xiong, Peng and Zhou, S Kevin},
+    title = {A fully-open structure-guided RNA foundation model for robust structural and functional inference},
     elocation-id = {2025.08.06.668731},
     year = {2025},
     doi = {10.1101/2025.08.06.668731},
     publisher = {Cold Spring Harbor Laboratory},
-    URL = {https://www.biorxiv.org/content/early/2025/08/06/2025.08.06.668731},
+    URL = {https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731},
     journal = {bioRxiv}
 }
-
 ```
