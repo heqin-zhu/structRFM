@@ -21,15 +21,15 @@
     <a href="https://scholar.google.com/citations?user=8eNm2GMAAAAJ"><strong>S. Kevin Zhou*</strong></a>
   </p>
   <h2 align="center">Submitted</h2>
-  <div align="center">
-    <img src="images/Fig1.png", width="800">
-  </div>
   <p align="center">
     <a href="https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731">bioRxiv</a> |
     <a href="https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731.full.pdf">PDF</a> |
     <a href="https://github.com/heqin-zhu/structRFM">GitHub</a> |
     <a href="https://pypi.org/project/structRFM">PyPI</a>
   </p>
+  <div align="center">
+    <img src="images/Fig1.png", width="800">
+  </div>
 </p>
 
 
@@ -77,7 +77,7 @@ pip3 install structRFM
 3. Download and decompress pretrained structRFM (305 M).
 ```shell
 wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
-tar -xzf model_predict.tar.gz
+tar -xzf structRFM_checkpoint.tar.gz
 ```
 4. Set environment varible `structRFM_checkpoint`.
 ```shell
