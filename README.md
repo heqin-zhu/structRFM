@@ -35,14 +35,18 @@
 
 <!-- vim-markdown-toc GFM -->
 
-* [Abstract](#abstract)
+* [Overview](#overview)
+    * [Abstract](#abstract)
+    * [Key Achievements](#key-achievements)
 * [Installation](#installation)
     * [Requirements](#requirements)
     * [Instructions](#instructions)
+* [Usage](#usage)
+    * [Extract RNA sequence features](#extract-rna-sequence-features)
+    * [Build structRFM for finetuning](#build-structrfm-for-finetuning)
 * [Pretraining](#pretraining)
     * [Download sequence-structure dataset](#download-sequence-structure-dataset)
     * [Run pretraining](#run-pretraining)
-    * [Extract RNA sequence features](#extract-rna-sequence-features)
 * [Downstream Tasks](#downstream-tasks)
 * [Acknowledgement](#acknowledgement)
 * [LICENSE](#license)
@@ -50,9 +54,15 @@
 
 <!-- vim-markdown-toc -->
 
-## Abstract
-RNA language models have achieved strong performance across diverse downstream tasks by leveraging large-scale sequence data. However, RNA function is fundamentally shaped by its hierarchical structure, making the integration of structural information into pretraining essential. Existing methods often depend on noisy structural annotations or introduce task-specific biases, limiting model generalizability. Here, we introduce structRFM, a structure-guided RNA foundation model that is pretrained by implicitly incorporating large-scale base pairing interactions and sequence data via a dynamic masking ratio to balance nucleotide-level and structure-level masking. structRFM learns joint knowledge of sequential and structural data, producing versatile representations-including classification-level, sequence-level, and pairwise matrix features-that support broad downstream adaptations. structRFM ranks top models in zero-shot homology classification across fifteen biological language models, and sets new benchmarks for secondary structure prediction, achieving F1 scores of 0.873 on ArchiveII and 0.641 on bpRNA-TS0 dataset. structRFM further enables robust and reliable tertiary structure prediction, with consistent improvements in both 3D accuracy and extracted 2D structures. In functional tasks such as internal ribosome entry site identification, structRFM achieves a 49\% performance gain. These results demonstrate the effectiveness of structure-guided pretraining and highlight a promising direction for developing multi-modal RNA language models in computational biology.
+## Overview
+### Abstract
+RNA language models have achieved strong performance across diverse downstream tasks by leveraging large-scale sequence data. However, RNA function is fundamentally shaped by its hierarchical structure, making the integration of structural information into pretraining essential. Existing methods often depend on noisy structural annotations or introduce task-specific biases, limiting model generalizability. Here, we introduce structRFM, a structure-guided RNA foundation model that is pretrained by implicitly incorporating large-scale base pairing interactions and sequence data via a dynamic masking ratio to balance nucleotide-level and structure-level masking. structRFM learns joint knowledge of sequential and structural data, producing versatile representations-including classification-level, sequence-level, and pairwise matrix features-that support broad downstream adaptations. structRFM ranks top models in zero-shot homology classification across fifteen biological language models, and sets new benchmarks for secondary structure prediction, achieving F1 scores of 0.873 on ArchiveII and 0.641 on bpRNA-TS0 dataset. structRFM further enables robust and reliable tertiary structure prediction, with consistent improvements in both 3D accuracy and extracted 2D structures. In functional tasks such as internal ribosome entry site identification, structRFM achieves a 49% performance gain. These results demonstrate the effectiveness of structure-guided pretraining and highlight a promising direction for developing multi-modal RNA language models in computational biology.
 
+### Key Achievements
+- **Zero-shot homology classification**: Top-ranked among 15 biological language models.
+- **Secondary structure prediction**: Sets new state-of-the-art performances.
+- **Tertiary structure prediction**: Derived method **Zfold** improves RNA Puzzles accuracy by **19%** over AlphaFold3.
+- **Functional inference**: Boosts F1 score by **49%** on IRES identification.
 
 ## Installation
 ### Requirements
@@ -74,7 +84,7 @@ conda activate structRFM
 ```shell
 pip3 install structRFM
 ```
-3. Download and decompress pretrained structRFM (305 M).
+3. Download and decompress pretrained structRFM (305 MB).
 ```shell
 wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
 tar -xzf structRFM_checkpoint.tar.gz
@@ -84,24 +94,8 @@ tar -xzf structRFM_checkpoint.tar.gz
 export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent setting
 ```
 
-## Pretraining
-
-### Download sequence-structure dataset
-The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Zenodo](https://doi.org/10.5281/zenodo.16754363) (4.5 GB).
-
-### Run pretraining
-Modify variables `USER_DIR`, `PROGRAM_DIR`, `DATA_DIR`, and `OUT_DIR` in `run.sh`, then run:
-
-```bash
-bash ./run.sh --print --batch_size 128 --epoch 100 --lr 0.0001 --tag mlm --mlm_structure
-```
-
+## Usage
 ### Extract RNA sequence features
-
-<details>
-
-<summary>demo.py</summary>
-
 ```python
 import os
 
@@ -111,33 +105,43 @@ from_pretrained = os.getenv('structRFM_checkpoint')
 model = structRFM_infer(from_pretrained=from_pretrained, max_length=514)
 
 seq = 'AGUACGUAGUA'
-output_attentions = True
 
 print('seq len:', len(seq))
-# (1+L+1)x 768,  [CLS] seq [SEP]
-features, attentions = model.extract_feature(seq, return_all=True, output_attentions=output_attentions)
+feat_dic = model.extract_feature(seq)
+for k, v in feat_dic.items():
+    print(k, v.shape)
 
-# feat  tuple: layer=12, tuple[i]: batch x L x hidden_dim(=768)
-last_feat = features[-1]
-
-# classification feature, 1x768
-cls_feat = last_feat[0,:] # 1x768
-# sequence feature, Lx768
-feat1d = last_feat[1:-1, :] # Lx768
-# matrix_feature, LxL
-feat2d = feat1d @ feat1d.transpose(-1,-2) # LxL
-
-print('classification feature:', cls_feat.shape)
-print('sequence feature:', feat1d.shape)
-print('matrix feature:', feat2d.shape)
-
-# atten   tuple: layer=12, tuple[i]: batch x head(=12) x L x L
-# remove special tokens
-attentions = tuple([atten[:, :, 1:-1, 1:-1] for atten in attentions])
-print('attentions', len(attentions), attentions[0].shape)
+'''
+seq len: 11
+cls_feat torch.Size([768])
+seq_feat torch.Size([11, 768])
+mat_feat torch.Size([11, 11])
+'''
 ```
 
-</details>
+### Build structRFM for finetuning
+```python3
+import os
+
+from structRFM.model import get_structRFM
+from structRFM.data import preprocess_and_load_dataset, get_mlm_tokenizer
+
+from_pretrained = os.getenv('structRFM_checkpoint')
+
+tokenizer = get_mlm_tokenizer(max_length=514)
+model = get_structRFM(dim=768, layer=12, from_pretrained=from_pretrained, pretrained_length=None, max_length=514, tokenizer=tokenizer)
+```
+
+## Pretraining
+### Download sequence-structure dataset
+The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Zenodo](https://doi.org/10.5281/zenodo.16754363) (4.5 GB).
+
+### Run pretraining
+Modify variables `USER_DIR`, `PROGRAM_DIR`, `DATA_DIR`, and `OUT_DIR` in `run.sh`, then run:
+
+```bash
+bash ./run.sh --print --batch_size 128 --epoch 100 --lr 0.0001 --tag mlm --mlm_structure
+```
 
 ## Downstream Tasks
 Download all data (3.7 GB) and checkpoints (2.2 GB) from [Zenodo](https://doi.org/10.5281/zenodo.16754363), and then place them into corresponding folder of each task.

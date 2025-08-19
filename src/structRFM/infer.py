@@ -92,7 +92,7 @@ class structRFM_infer:
             return outputs
 
 
-    def extract_feature(self, seq, include_special=True, return_all=False, output_attentions=False, is_training=False):
+    def extract_raw_feature(self, seq, include_special=True, return_all=False, output_attentions=False, is_training=False):
         '''
             Extract hidden feature of input seq.
             seq: str
@@ -112,3 +112,17 @@ class structRFM_infer:
             return final_out_features, out_attentions
         else:
             return final_out_features
+
+    def extract_feature(self, seq):
+        # feat  tuple: layer=12, tuple[i]: batch x L x hidden_dim(=768)
+        features = self.extract_raw_feature(seq, return_all=True)
+        ## (1+L+1)x 768,  [CLS] seq [SEP]
+        last_feat = features[-1]
+        cls_feat = last_feat[0,:] # 1x768
+        seq_feat = last_feat[1:-1, :] # Lx768
+        mat_feat = seq_feat @ seq_feat.transpose(-1,-2) # LxL
+        return {
+                'cls_feat': cls_feat, # 1x768
+                'seq_feat': seq_feat, # Lx768
+                'mat_feat': mat_feat, # LxL
+               }

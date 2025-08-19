@@ -1,6 +1,7 @@
 import os
 import random
 import argparse
+from datetime import datetime
 
 import torch
 import tensorboard
@@ -129,6 +130,11 @@ def pretrain(args, tag):
 
 
 def run_pretrain():
+    print(f'Time: {datetime.now()}')
     args = parse_args()
     assert args.tag in {'mlm', 'ar'}, f'tag={args.tag} should be "mlm" or "ar"'
     pretrain(args, args.tag)
+
+
+if __name__ == '__main__':
+    run_pretrain()
