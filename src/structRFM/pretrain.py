@@ -130,10 +130,11 @@ def pretrain(args, tag):
 
 
 def run_pretrain():
-    print(f'Time: {datetime.now()}')
+    print(f'Begin time: {datetime.now()}')
     args = parse_args()
     assert args.tag in {'mlm', 'ar'}, f'tag={args.tag} should be "mlm" or "ar"'
     pretrain(args, args.tag)
+    print(f'End time: {datetime.now()}')
 
 
 if __name__ == '__main__':
