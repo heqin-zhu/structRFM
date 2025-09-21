@@ -115,7 +115,7 @@ class IreeSeek_LM_model(nn.Module):
     def lm_feature(self,seqs):
         feature_list = [] 
         for i, seq in enumerate(seqs):
-            features = self.RNALM.extract_feature(seq, is_training=self.training)
+            features = self.RNALM.extract_raw_feature(seq, is_training=self.training)
             #print("features:",features[1:-1, :].shape)
             features = features[1:-1, :]
             feature_list.append(features)

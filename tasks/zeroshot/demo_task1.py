@@ -81,7 +81,7 @@ def list_depth(lst):
 #         print(f'Processing {i+1}/{len(valid_data)}: {name}, seq len: {len(seq)}')
         
 #         # extract feature and attention matrix
-#         features, attentions = model.extract_feature(seq, return_all=True, output_attentions=True)
+#         features, attentions = model.extract_raw_feature(seq, return_all=True, output_attentions=True)
 #         attentions = tuple([atten[:, :, 1:-1, 1:-1] for atten in attentions])
         
 #         gt_connects = torch.from_numpy(gt_connects)
@@ -153,7 +153,7 @@ def process_one_sequence(args):
     model = structRFM_infer(from_pretrained=from_pretrained, max_length=514)
 
     #  attention
-    features, attentions = model.extract_feature(seq, return_all=True, output_attentions=True)
+    features, attentions = model.extract_raw_feature(seq, return_all=True, output_attentions=True)
     attentions = tuple([atten[:, :, 1:-1, 1:-1] for atten in attentions])
     gt_connects = torch.from_numpy(gt_connects)
     

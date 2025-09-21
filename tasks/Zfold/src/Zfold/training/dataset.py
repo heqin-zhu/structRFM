@@ -86,6 +86,7 @@ class MSADataset(Dataset):
                  stru_feat_type='SS',
                  LM=None,
                  freeze_LM=False,
+                 use_outer_product_mean=False,
                  ):
         super(MSADataset, self).__init__()
 
@@ -98,6 +99,7 @@ class MSADataset(Dataset):
         self.is_distill = is_distill
         self.warning = warning
 
+        self.use_outer_product_mean = use_outer_product_mean
         self.stru_feat_type = stru_feat_type
         if self.stru_feat_type!='SS':
             parent_dir = os.path.dirname(self.npz_dir)
@@ -265,15 +267,21 @@ class MSADataset(Dataset):
     def get_LM_feat(self, seq, use_cache=False):
         if self.freeze_LM and use_cache:
             if seq not in self.LM_feat_cache:
-                feat = self.LM.extract_feature(seq, return_all=False)[1:-1, :]
-                feat2d = feat @ feat.transpose(1, 0)
+                feat = self.LM.extract_raw_feature(seq, return_all=False)[1:-1, :]
+                feat2d = self.get_matrix_feature(feat)
                 self.LM_feat_cache[seq] = feat2d
             feat2d = self.LM_feat_cache[seq]
         else:
-            feat = self.LM.extract_feature(seq, return_all=False, is_training=not self.freeze_LM)[1:-1, :]
-            feat2d = feat @ feat.transpose(1, 0)
+            feat = self.LM.extract_raw_feature(seq, return_all=False, is_training=not self.freeze_LM)[1:-1, :]
+            feat2d = self.get_matrix_feature(feat)
         return feat2d
 
+    def get_matrix_feature(self, LM_embed):
+        if self.use_outer_product_mean:
+            shape = LM_embed.shape
+            return (LM_embed.unsqueeze(-3).unsqueeze(-2) * LM_embed.unsqueeze(-2).unsqueeze(-1)).reshape(*shape[:-1], shape[-2], -1).mean(dim=-1)
+        else:
+            return LM_embed @ LM_embed.transpose(1, 0)
 
     def parse_labels(self, raw, l, crop=None):
         if crop is None: crop = np.arange(l)

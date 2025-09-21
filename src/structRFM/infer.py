@@ -114,6 +114,9 @@ class structRFM_infer:
             return final_out_features
 
     def extract_feature(self, seq):
+        '''
+            return feature_dic, with keys: cls_feat, seq_feat, mat_feat
+        '''
         # feat  tuple: layer=12, tuple[i]: batch x L x hidden_dim(=768)
         features = self.extract_raw_feature(seq, return_all=True)
         ## (1+L+1)x 768,  [CLS] seq [SEP]
@@ -121,6 +124,9 @@ class structRFM_infer:
         cls_feat = last_feat[0,:] # 1x768
         seq_feat = last_feat[1:-1, :] # Lx768
         mat_feat = seq_feat @ seq_feat.transpose(-1,-2) # LxL
+        # L = len(seq)
+        # mat_feat = seq_feat.unsqueeze(-2).unsqueeze(-1)*seq_feat.unsqueeze(-3).unsqueeze(-2) # LxLx768x768 ## cost too much memory
+        # mat_feat = mat_feat.reshape(L, L, -1).mean(dim=-1)
         return {
                 'cls_feat': cls_feat, # 1x768
                 'seq_feat': seq_feat, # Lx768

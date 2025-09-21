@@ -53,7 +53,7 @@ if __name__ == '__main__':
             if len(seq) > 512:
                 print(f'Skipping {label} due to length {len(seq)} > 512')
                 continue
-            features = model.extract_feature(seq, return_all=False, output_attentions=False)
+            features = model.extract_raw_feature(seq, return_all=False, output_attentions=False)
             # print(features.shape)
             out_features = fftCal(features.cpu().numpy())
             out_features = np.squeeze(out_features, axis=0)

@@ -93,7 +93,7 @@ def get_attentions(dest, seq, seq_name):
     else:
         if len(seq)>512:
             seq = seq[:512]
-        features, attentions = model.extract_feature(seq, return_all=True, output_attentions=True)
+        features, attentions = model.extract_raw_feature(seq, return_all=True, output_attentions=True)
         attentions = tuple([atten[:, :, 1:-1, 1:-1].cpu() for atten in attentions])
         with open(cur_path, "wb") as f:
             pickle.dump(attentions, f)
@@ -110,7 +110,7 @@ def get_layer_outputs(dest, seq, seq_name):
     else:
         if len(seq)>512:
             seq = seq[:512]
-        features, attentions = model.extract_feature(seq, return_all=True, output_attentions=True)
+        features, attentions = model.extract_raw_feature(seq, return_all=True, output_attentions=True)
         layer_outputs = tuple([feat[1:-1, :].cpu() for feat in features])
         with open(cur_path, "wb") as f:
             pickle.dump(layer_outputs, f)

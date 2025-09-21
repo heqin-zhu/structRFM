@@ -62,6 +62,7 @@ group.add_argument('-cpu', '--cpu',
                    type=int, default=2,
                    help='Number of cpus to use (default:2)')
 group.add_argument('--freeze_LM', action='store_true')
+group.add_argument('--use_outer_product_mean', action='store_true')
 group.add_argument('-warning', '--warning',
                    action='store_true',
                    help='Whether to show warnings (default: False)')
@@ -171,8 +172,8 @@ if __name__ == '__main__':
     if args.freeze_LM:
         for name, para in LM.model.named_parameters():
             para.requires_grad = False
-    train_set = MSADataset(train_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff)
-    val_set = MSADataset(val_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, random_=False, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff)
+    train_set = MSADataset(train_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff, use_outer_product_mean=args.use_outer_product_mean)
+    val_set = MSADataset(val_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, random_=False, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff, use_outer_product_mean=args.use_outer_product_mean)
 
     num_samples = len(train_set)
     sampler = None
