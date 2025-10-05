@@ -38,8 +38,8 @@ def parse_args():
     parser.add_argument('--resume_from_checkpoint', type=str, help='checkpoint path for trainer, default resume_from_checkpoint=True')
 
     # Training args
-    parser.add_argument('--lr', type=float, default=0.0003, help='learning rate')
-    parser.add_argument('--epoch', type=int, default=10, help='learning rate')
+    parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
+    parser.add_argument('--epoch', type=int, default=30, help='learning rate')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--mlm_structure', action='store_true')
     args = parser.parse_args()

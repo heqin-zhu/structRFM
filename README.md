@@ -4,9 +4,8 @@
   <p align="center">
     <a href="https://heqin-zhu.github.io/"><strong>Heqin Zhu</strong></a>
     ·
-    <strong>Ruifeng Li</strong>
+    <a href="https://scholar.google.com/citations?user=9h_K8BoAAAAJ"><strong>Ruifeng Li</strong></a><br>
     ·
-    <!-- <a href="https://zaixizhang.github.io/"><strong>Zaixi Zhang</strong></a> · -->
     <strong>Feng Zhang</strong>
     ·
     <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a><br>

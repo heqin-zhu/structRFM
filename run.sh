@@ -20,13 +20,13 @@ while true; do
 done
 
 if [ -z "$batch_size" ]; then
-    batch_size=64
+    batch_size=128
 fi
 if [ -z "$epoch" ]; then
-    epoch=5
+    epoch=30
 fi
 if [ -z "$lr" ]; then
-    lr=0.0002
+    lr=0.0001
 fi
 if [ -z "$tag" ]; then
     tag="mlm"

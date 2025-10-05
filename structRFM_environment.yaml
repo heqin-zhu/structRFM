@@ -1,0 +1,24 @@
+name: structRFM
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.8
+  - numpy
+  - pandas
+  - pyyaml
+  - pip
+  - pandas
+  - scikit-learn
+  - tensorboard
+  - transformers
+  - safetensors
+  - datasets
+  - einops
+  - pip:
+    - torch>=2.0.1
+    # - torchvision
+    # - torchaudio
+    - BPfold
+    - structRFM

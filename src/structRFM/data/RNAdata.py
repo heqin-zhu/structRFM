@@ -3,8 +3,7 @@ from ast import literal_eval
 from functools import partial
 
 from datasets import load_dataset, load_from_disk
-
-from ..util.RNA_kit import connects2dbn
+from BPfold.util.RNA_kit import connects2dbn
 
 
 def process_mlm_input_seq(seq, bos_token='[CLS]', eos_token='[SEP]'):
