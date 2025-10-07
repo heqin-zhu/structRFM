@@ -26,7 +26,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='RNA LM')
     parser.add_argument('--run_name', type=str, required=True)
     # Data args
-    parser.add_argument('--data_path', type=str, default='../RNAcentral/RNAcentral_BPfold_SS')
+    parser.add_argument('--data_path', type=str, default='../RNAcentral/RNAcentral_512_MUSES_connects.csv')
     parser.add_argument('--tag', type=str, choices=['mlm', 'ar'], default='mlm')
     parser.add_argument('--max_length', type=int, default=514, help='Max length of tokens')
     parser.add_argument('--seed', type=int, default=42)
