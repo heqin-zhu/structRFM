@@ -2,7 +2,7 @@ source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
 conda env list
 
 # parse args
-options=$(getopt -o b:e:l:t:n:c:p:s --long batch_size:,epoch:,lr:,tag:,run_name:,resume_from_checkpoint:,print,mlm_structure -- "$@")
+options=$(getopt -o b:e:l:d:t:n:c:p:s --long batch_size:,epoch:,lr:,data_path:,tag:,run_name:,resume_from_checkpoint:,print,mlm_structure -- "$@")
 eval set -- "$options"
 # 提取选项和参数
 while true; do
@@ -10,6 +10,7 @@ while true; do
   	-b | --batch_size) shift; batch_size=$1 ; shift ;;
     -e | --epoch) shift; epoch=$1 ; shift ;;
     -l | --lr) shift; lr=$1 ; shift ;;
+    -d | --data_path) shift; data_path=$1 ; shift ;;
     -t | --tag) shift; tag=$1; shift ;;
     -n | --run_name) shift; run_name=$1; shift ;;
     -c | --resume_from_checkpoint) shift; resume_from_checkpoint=$1; shift ;;
@@ -20,6 +21,10 @@ while true; do
   esac
 done
 
+USER_DIR=/heqinzhu
+PROGRAM_DIR=$USER_DIR/gitrepo/LLM/structRFM
+OUT_DIR=$USER_DIR/runs
+
 if [ -z "$batch_size" ]; then
     batch_size=128
 fi
@@ -28,6 +33,9 @@ if [ -z "$epoch" ]; then
 fi
 if [ -z "$lr" ]; then
     lr=0.0001
+fi
+if [ -z "$data_path" ]; then
+    data_path=$USER_DIR/gitrepo/LLM/RNAcentral/RNAcentral_512_MUSES_connects.csv
 fi
 if [ -z "$tag" ]; then
     tag="mlm"
@@ -48,16 +56,11 @@ if [ "$mlm_structure" = true ]; then
 
 fi
 
-USER_DIR=/heqinzhu
-PROGRAM_DIR=$USER_DIR/gitrepo/LLM/structRFM
-DATA_DIR=$USER_DIR/gitrepo/LLM/RNAcentral/RNAcentral_BPfold_SS
-OUT_DIR=$USER_DIR/runs
-
 echo "mlm $mlm_stru_str"
 
 RUN_NAME="${run_name}_${tag}_lr${lr}${mlm_stru_str}"
 
-cmd="python3 $PROGRAM_DIR/main.py --run_name $OUT_DIR/$RUN_NAME --data_path $DATA_DIR --tag ${tag} --max_length 514 --dim 768 --layer 12 --batch_size ${batch_size} --epoch ${epoch} --lr ${lr} ${mlm_stru_flag} --resume_from_checkpoint ${resume_from_checkpoint} 2>&1 | tee -a $OUT_DIR/$RUN_NAME/log_train"
+cmd="python3 $PROGRAM_DIR/main.py --run_name $OUT_DIR/$RUN_NAME --data_path $data_path --tag ${tag} --max_length 514 --dim 768 --layer 12 --batch_size ${batch_size} --epoch ${epoch} --lr ${lr} ${mlm_stru_flag} --resume_from_checkpoint ${resume_from_checkpoint} 2>&1 | tee -a $OUT_DIR/$RUN_NAME/log_train"
 
 if [ "$print" = true ]; then
     echo $cmd
