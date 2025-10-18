@@ -4,7 +4,7 @@
   <p align="center">
     <a href="https://heqin-zhu.github.io/"><strong>Heqin Zhu</strong></a>
     ·
-    <a href="https://scholar.google.com/citations?user=9h_K8BoAAAAJ"><strong>Ruifeng Li</strong></a><br>
+    <a href="https://scholar.google.com/citations?user=9h_K8BoAAAAJ"><strong>Ruifeng Li</strong></a>
     ·
     <strong>Feng Zhang</strong>
     ·
@@ -79,16 +79,12 @@ cd structRFM
 conda env create -f environment.yaml
 conda activate structRFM
 ```
-2. Install structRFM.
-```shell
-pip3 install structRFM
-```
-3. Download and decompress pretrained structRFM (305 MB).
+2. Download and decompress pretrained structRFM (305 MB).
 ```shell
 wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
 tar -xzf structRFM_checkpoint.tar.gz
 ```
-4. Set environment varible `structRFM_checkpoint`.
+3. Set environment varible `structRFM_checkpoint`.
 ```shell
 export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent setting
 ```
