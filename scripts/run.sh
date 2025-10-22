@@ -2,8 +2,10 @@
 source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
 conda env list
 
-python run.py "$@"
-cmd="python3 -m src.structRFM.pretrain $@ "
+USER_DIR=/heqinzhu
+PROGRAM_DIR=$USER_DIR/gitrepo/LLM/structRFM
+
+cmd="python3 $PROGRAM_DIR/main.py $@ "
 
 echo $cmd
 # exec $cmd  # wrong
