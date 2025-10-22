@@ -56,10 +56,10 @@ def pretrain(args, tag):
 
     model = None
     if tag=='mlm':
-        model = get_structRFM(args.dim, args.layer, args.from_pretrained, tokenizer, max_length=args.max_length)
+        model = get_structRFM(args.dim, args.layer, args.from_pretrained, tokenizer=tokenizer, max_length=args.max_length)
         model_name = 'structRFM'
     else:
-        model = get_llama_causal_model(args.dim, args.layer, args.from_pretrained, tokenizer, max_length=args.max_length)
+        model = get_llama_causal_model(args.dim, args.layer, args.from_pretrained, tokenizer=tokenizer, max_length=args.max_length)
         model_name = 'llama'
     model_param_size = sum(t.numel() for t in model.parameters())
     print(model)

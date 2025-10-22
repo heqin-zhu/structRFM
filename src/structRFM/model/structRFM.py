@@ -84,12 +84,12 @@ class structRFM(BertForMaskedLM):
         return super().forward(input_ids=input_ids, attention_mask=attention_mask, labels=labels, *args, **kargs)
 
 
-def get_structRFM(dim=768, layer=12, from_pretrained=None, pretrained_length=None, max_length=514, tokenizer=None, *args, **kargs):
+def get_structRFM(dim=768, layer=12, from_pretrained=None, pretrained_length=514, max_length=514, tokenizer=None, *args, **kargs):
     return get_bert(dim=dim, layer=layer, from_pretrained=from_pretrained, pretrained_length=pretrained_length, max_length=max_length, tokenizer=tokenizer, model_class=structRFM, *args, **kargs)
 
 
 class structRFM_for_cls(nn.Module):
-    def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, pretrained_length=None, max_length=514, tokenizer=None, use_mean_feature=False):
+    def __init__(self, num_class, dim=768, layer=12, from_pretrained=None, pretrained_length=514, max_length=514, tokenizer=None, use_mean_feature=False):
         '''
             use mean seq feature instead of cls token for classification.
         '''
