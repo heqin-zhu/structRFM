@@ -15,13 +15,13 @@ def save_seqs_to_csv(path, seqs, names=None):
 
 
 class structRFM_infer:
-    def __init__(self, from_pretrained, max_length=514, dim=768, layer=12, output_hidden_states=True, device=None):
+    def __init__(self, from_pretrained, max_length=514, dim=768, layer=12, num_attention_heads=12, output_hidden_states=True, device=None):
         # set output_hidden_states=True to get the hidden states (features)
 
         # self.tokenizer = AutoTokenizer(from_pretrained)
         # self.model = AutoModel.from_pretrained(from_pretrained, output_hidden_states=True) # why won't output logtits?
         self.tokenizer = get_mlm_tokenizer(max_length=max_length)
-        self.model = get_structRFM(dim=dim, layer=layer, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
+        self.model = get_structRFM(dim=dim, layer=layer, num_attention_heads=num_attention_heads, from_pretrained=from_pretrained, tokenizer=self.tokenizer, output_hidden_states=output_hidden_states)
         if device is None:
             if torch.cuda.is_available():
                 self.model.cuda()

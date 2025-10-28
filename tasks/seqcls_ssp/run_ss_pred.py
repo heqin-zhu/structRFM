@@ -52,6 +52,7 @@ def get_args():
     parser.add_argument('--LM_path', type=str)
     parser.add_argument('--checkpoint_path', type=str)
     parser.add_argument('--model_name', type=str, default="structRFM", choices=MODELS)
+    parser.add_argument('--model_scale', type=str, choices=['base', 'large'], default='base')
     parser.add_argument('--vocab_path', type=str, default="./vocabs/")
     parser.add_argument('--config_path', type=str, default="./configs/")
 
@@ -161,7 +162,8 @@ if __name__ == "__main__":
         # pretrained_model._load_pretrained_bert(args.LM_path)
     elif args.model_name == 'structRFM':
         tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len)
-        model = get_structRFM(from_pretrained=args.LM_path, output_hidden_states=True, tokenizer=tokenizer, pretrained_length=514)
+        model_paras = get_model_scale(args.model_scale)
+        model = get_structRFM(from_pretrained=args.LM_path, output_hidden_states=True, tokenizer=tokenizer, pretrained_length=514, **model_paras)
         if args.freeze_base:
             freeze(model)
         pretrained_model = structRFMForSsp(model)

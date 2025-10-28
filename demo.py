@@ -34,7 +34,7 @@ if __name__ == '__main__':
     from src.structRFM.data import preprocess_and_load_dataset, get_mlm_tokenizer
 
     tokenizer = get_mlm_tokenizer(max_length=514)
-    model = get_structRFM(dim=768, layer=12, from_pretrained=from_pretrained, pretrained_length=None, max_length=514, tokenizer=tokenizer)
+    model = get_structRFM(dim=768, layer=12, num_attention_heads=12, from_pretrained=from_pretrained, pretrained_length=None, max_length=514, tokenizer=tokenizer)
 
     tag = 'mlm'
     mlm_structure=True

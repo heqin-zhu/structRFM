@@ -18,7 +18,7 @@ from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls
 
 import sys
 sys.path.append('../..')
-from src.structRFM.model import get_structRFM_for_cls
+from src.structRFM.model import get_structRFM_for_cls, get_model_scale
 from src.structRFM.data import get_mlm_tokenizer
 
 # ========== Define constants
@@ -71,6 +71,7 @@ def get_args():
         'Implementation of RNA sequence classification.')
     # model args
     parser.add_argument('--model_name', type=str, default="structRFM", choices=MODELS)
+    parser.add_argument('--model_scale', type=str, choices=['base', 'large'], default='base')
     parser.add_argument('--vocab_path', type=str, default="./vocabs/")
     parser.add_argument('--LM_path', type=str)
     parser.add_argument('--config_path', type=str,default="./configs/")
@@ -158,16 +159,17 @@ if __name__ == "__main__":
         model = RNAFmForSeqCls(model)
     elif args.model_name == "structRFM":
         from_pretrained = args.LM_path
+        model_paras = get_model_scale(args.model_scale)
         if args.max_seq_len+2>514:
             tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
-            model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, tokenizer=tokenizer, pretrained_length=514, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature)
+            model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, tokenizer=tokenizer, pretrained_length=514, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
         else:
             if args.use_automodelforseqcls:
                 model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path=from_pretrained, num_labels=len(LABEL2ID[args.dataset]))
                 if args.freeze_base:
                     freeze(model.bert.encoder)
             else:
-                model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature)
+                model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
             tokenizer = AutoTokenizer.from_pretrained(from_pretrained)
     else:
         raise ValueError("Unknown model name: {}".format(args.model_name))

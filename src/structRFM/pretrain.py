@@ -34,6 +34,7 @@ def parse_args():
     # Model args
     parser.add_argument('--dim', type=int, default=768, help='hidden dim')
     parser.add_argument('--layer', type=int, default=12)
+    parser.add_argument('--num_attention_heads', type=int, default=12)
     parser.add_argument('--from_pretrained', type=str, help='for model')
     parser.add_argument('--resume_from_checkpoint', type=str, help='checkpoint path for trainer, default resume_from_checkpoint=True')
 
@@ -56,7 +57,7 @@ def pretrain(args, tag):
 
     model = None
     if tag=='mlm':
-        model = get_structRFM(args.dim, args.layer, args.from_pretrained, tokenizer=tokenizer, max_length=args.max_length)
+        model = get_structRFM(dim=args.dim, layer=args.layer, num_attention_heads=args.num_attention_heads, from_pretrained=args.from_pretrained, tokenizer=tokenizer, max_length=args.max_length)
         model_name = 'structRFM'
     else:
         model = get_llama_causal_model(args.dim, args.layer, args.from_pretrained, tokenizer=tokenizer, max_length=args.max_length)
