@@ -10,10 +10,11 @@ from transformers import LlamaForCausalLM, LlamaModel, BertForMaskedLM
 
 
 def get_model_scale(scale):
-    return {
-            'base': dict(dim=768,layer=12,num_attention_heads=12),
-            'large': dict(dim=1024,layer=24,num_attention_heads=16),
-          }
+    scale_dic = {
+             'base': dict(dim=768,layer=12,num_attention_heads=12),
+             'large': dict(dim=1024,layer=24,num_attention_heads=16),
+           }
+    return scale_dic.get(scale, {})
 
 
 def get_llama_model(dim, layer, from_pretrained, tokenizer, model_class=LlamaModel):

@@ -11,7 +11,7 @@ import tensorboard
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
 
-from .model import get_structRFM, get_llama_causal_model
+from .model import get_structRFM, get_llama_causal_model, get_model_scale
 from .data import get_mlm_tokenizer, get_ar_tokenizer, preprocess_and_load_dataset, PretrainDataCollatorWithStructure
 
 
@@ -38,6 +38,7 @@ def parse_args():
     parser.add_argument('--dim', type=int, default=768, help='hidden dim')
     parser.add_argument('--layer', type=int, default=12)
     parser.add_argument('--num_attention_heads', type=int, default=12)
+    parser.add_argument('--model_scale', type=str, choices=['base', 'large', 'custom'], default='custom')
     parser.add_argument('--from_pretrained', type=str, help='for model')
     parser.add_argument('--resume_from_checkpoint', type=str, help='checkpoint path for trainer, default resume_from_checkpoint=True')
 
@@ -52,6 +53,11 @@ def parse_args():
 
 
 def pretrain(args, tag):
+    model_scale_paras = get_model_scale(args.model_scale)
+    print('model_scale', args.model_scale, model_scale_paras)
+    for k, v in model_scale_paras.items():
+        setattr(args, k, v)
+
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     set_seed(args.seed)
     if tag == 'mlm':
