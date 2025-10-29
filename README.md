@@ -76,7 +76,7 @@ cd structRFM
 ```
 1. Create and activate conda environment.
 ```shell
-conda env create -f environment.yaml
+conda env create -f structRFM_environment.yaml
 conda activate structRFM
 ```
 2. Download and decompress pretrained structRFM (305 MB).
@@ -132,11 +132,15 @@ model = get_structRFM(dim=768, layer=12, num_attention_heads=12, from_pretrained
 The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Zenodo](https://doi.org/10.5281/zenodo.16754363) (4.5 GB).
 
 ### Run pretraining
-Modify variables `USER_DIR`, `PROGRAM_DIR`, `DATA_DIR`, and `OUT_DIR` in `run.sh`, then run:
+- Modify variables `USER_DIR` and `PROGRAM_DIR` in `scripts/run.sh`,
+- Specify `DATA_PATH` and `run_name` in the following command,
 
+Then run:
 ```bash
-bash ./run.sh --print --batch_size 128 --epoch 100 --lr 0.0001 --tag mlm --mlm_structure
+bash scripts/run.sh --batch_size 96 --epoch 100 --lr 0.0001 --tag mlm --mlm_structure --max_length 514 --model_scale base --data_path DATA_PATH --run_name structRFM_512
 ```
+
+For more information, run `python3 main.py -h`.
 
 ## Downstream Tasks
 Download all data (3.7 GB) and checkpoints (2.2 GB) from [Zenodo](https://doi.org/10.5281/zenodo.16754363), and then place them into corresponding folder of each task.
