@@ -4,6 +4,9 @@ import argparse
 from datetime import datetime
 
 import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
 import tensorboard
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorForLanguageModeling
@@ -39,6 +42,7 @@ def parse_args():
     parser.add_argument('--resume_from_checkpoint', type=str, help='checkpoint path for trainer, default resume_from_checkpoint=True')
 
     # Training args
+    parser.add_argument('--use_DDP', action='store_true')
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--epoch', type=int, default=30, help='learning rate')
     parser.add_argument('--batch_size', type=int, default=128)
@@ -65,6 +69,17 @@ def pretrain(args, tag):
     model_param_size = sum(t.numel() for t in model.parameters())
     print(model)
     print(f"{model_name} model paras: {model_param_size/1e6:.1f}M")
+
+    # DDP setting
+    if args.use_DDP:
+        local_rank = int(os.environ['LOCAL_RANK'])
+        world_size = int(os.environ.get("WORLD_SIZE", 1))
+        dist.init_process_group(backend='nccl')
+        torch.cuda.set_device(local_rank)
+        print(f"World size: {world_size}, Local rank: {local_rank}")
+
+        ## No need to explictly use DDP func, transformers.trainer will do
+        # model = DDP(model, device_ids=[local_rank])
 
     dataset = preprocess_and_load_dataset(args.data_path, tokenizer, tag, with_structure=args.mlm_structure)
     split_dataset = dataset
@@ -126,8 +141,9 @@ def pretrain(args, tag):
     else:
         trainer.train()
 
-    trainer.save_model(os.path.join(args.run_name, f"trainer_ep{args.epoch}"))
-    tokenizer.save_pretrained(os.path.join(args.run_name, f"tokenizer_ep{args.epoch}"))
+    if not args.use_DDP or local_rank == 0:
+        trainer.save_model(os.path.join(args.run_name, f"trainer_ep{args.epoch}"))
+        tokenizer.save_pretrained(os.path.join(args.run_name, f"tokenizer_ep{args.epoch}"))
 
 
 def run_pretrain():
