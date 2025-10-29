@@ -3,6 +3,7 @@ source activate /root/miniconda3/envs/RNA3d # wrong: conda activate
 conda env list
 
 USER_DIR=/heqinzhu
+# USER_DIR=~
 PROGRAM_DIR=$USER_DIR/gitrepo/LLM/structRFM
 
 
