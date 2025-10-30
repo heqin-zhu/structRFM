@@ -71,7 +71,7 @@ RNA language models have achieved strong performance across diverse downstream t
 ### Instructions
 0. Clone this repo.
 ```shell
-git clone git@github.com:heqin-zhu/structRFM.git
+git clone https://github.com/heqin-zhu/structRFM.git
 cd structRFM
 ```
 1. Create and activate conda environment.
