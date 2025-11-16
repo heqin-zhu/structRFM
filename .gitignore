@@ -16,3 +16,9 @@ examples
 *png
 *jpg
 *.fasta
+*data/
+data*/
+*labs
+MUSES
+MSA_simlarity
+tasks

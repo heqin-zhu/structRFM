@@ -24,7 +24,7 @@ from RNAdata import BPseqDataset
 from trainers import SspTrainer
 
 import sys
-from structRFM.model import get_structRFM
+from structRFM.model import get_structRFM, get_model_scale
 from structRFM.data import get_mlm_tokenizer
 
 # ========== Define constants

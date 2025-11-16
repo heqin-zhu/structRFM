@@ -242,7 +242,6 @@ dependencies:
       - regex==2024.11.6
       - requests==2.32.3
       - rna-tools==3.23.1
-      - rnastrubert==0.0.1
       - safetensors==0.5.3
       - scikit-learn==1.3.2
       - simplejson==3.20.1
@@ -254,4 +253,3 @@ dependencies:
       - wget==3.2
       - xxhash==3.5.0
       - yarl==1.15.2
-prefix: /public2/home/heqinzhu/miniconda3/envs/Zfold
