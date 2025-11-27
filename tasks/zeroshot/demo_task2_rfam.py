@@ -1,13 +1,5 @@
-'''
-Author: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
-Date: 2025-06-20 16:03:00
-LastEditors: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
-LastEditTime: 2025-06-25 18:32:36
-FilePath: /coding/RNA_Zero_Shot/structRFM/demo.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-'''
-# pip install structRFM-0.0.1.tar.gz
-# pip install transformers, datasets
+import os 
+import argparse
 
 from structRFM.infer import structRFM_infer
 import pprint 
@@ -16,22 +8,31 @@ import pickle
 import torch 
 import pandas as pd
 import numpy as np 
-import os 
 from multiprocessing import Pool 
 from extract_embs.tools import fftCal, emb_rfam_cos_sim_cal, metricCal 
 
 num_cores = os.cpu_count()
-print(f'当前可用 CPU 核心数: {num_cores}')
 
 
-## single processing 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--checkpoint_path', type=str, default='/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
+    parser.add_argument('--model_name', type=str, default='structRFM')
+    parser.add_argument('-g', '--gpu', type=str, default='0')
+    parser.add_argument('-L', '--max_length', type=int, default=514)
+    parser.add_argument('--num_attention_heads', type=int, default=12)
+    parser.add_argument('--dim', type=int, default=768)
+    parser.add_argument('--layer', type=int, default=12)
+    args = parser.parse_args()
+    return args
 
-if __name__ == '__main__':
-    from_pretrained = os.getenv('structRFM_checkpoint', '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
-    model = structRFM_infer(from_pretrained=from_pretrained, max_length=514, device='cuda:7')
+
+def run_rfam(from_pretrained, model_name=None, gpu='0', max_length=514, **model_paras):
+
+    model = structRFM_infer(from_pretrained=from_pretrained, device=f'cuda:{gpu}', max_length=max_length, **model_paras)
     prefix = '.'
+    model_name = model_name or "structRFM" # model name, used for saving the results
 
-    model_name = "structRFM"  # model name, used for saving the results
     ## Step 1: load the data: (0, 'RF00239_AC055869.13/127592-127511', 'GCCUCUCUCUCCGUGUUCACAGCGGACCUUGAUUUAAAUGUCCAUACAAUUAAGGCACGCGGUGAAUGCCAAGAAUGGGGCU')
     ## RF00239：Rfam family ID 
     data = pickle.load(open(os.path.join(prefix, 'task2_rfam/data/random_sample_max10_n24607_rf4170.pkl'), 'rb')) # TODO, update path
@@ -49,12 +50,12 @@ if __name__ == '__main__':
         
         for i, (index, label, seq) in enumerate(data):
             # print(f'Processing {i+1}/{len(data)}: {label}')
-            # if len(seq) > 513:
-            #     print(f'Skipping {label} due to length {len(seq)} > 514')
+            # if len(seq) > max_length-2:
+            #     print(f'Skipping {label} due to length {len(seq)} > {max_length-2}')
             #     continue
             # print(seq)
-            if len(seq)>512:
-                seq = seq[:512]
+            if len(seq)>max_length-2:
+                seq = seq[:max_length-2]
             features = model.extract_raw_feature(seq, return_all=False, output_attentions=False)
             # print(features.shape)
             out_features = fftCal(features.cpu().numpy())
@@ -155,3 +156,9 @@ if __name__ == '__main__':
     print(f'Average MCC: {avg_MCC}±{std_MCC}')
     print(f'Average thresh: {avg_thresh}±{std_thresh}')
     print(f'Average overlap_ratio: {avg_overlap_ratio}±{std_overlap_ratio}')    
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    from_pretrained = os.getenv('structRFM_checkpoint', args.checkpoint_path)
+    run_rfam(from_pretrained, model_name=args.model_name, gpu=args.gpu, max_length=args.max_length, dim=args.dim, layer=args.layer, num_attention_heads=args.num_attention_heads)

@@ -97,7 +97,8 @@ import os
 from structRFM.infer import structRFM_infer
 
 from_pretrained = os.getenv('structRFM_checkpoint')
-model = structRFM_infer(from_pretrained=from_pretrained, max_length=514)
+model_paras = dict(max_length=514, dim=768, layer=12, num_attention_heads=12)
+model = structRFM_infer(from_pretrained=from_pretrained, **model_paras)
 
 seq = 'AGUACGUAGUA'
 

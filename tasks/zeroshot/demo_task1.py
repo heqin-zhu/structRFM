@@ -1,14 +1,3 @@
-'''
-Author: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
-Date: 2025-06-20 16:03:00
-LastEditors: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
-LastEditTime: 2025-06-25 18:32:36
-FilePath: /coding/RNA_Zero_Shot/structRFM/demo.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-'''
-# pip install structRFM-0.0.1.tar.gz
-# pip install transformers, datasets
-
 from structRFM.infer import structRFM_infer
 import pprint 
 from task1_ss.evaluate_heatmap import mat2connects, connects2dbn, cal_metric_pairwise, attnmap_to_cont

@@ -4,7 +4,8 @@ from src.structRFM.infer import structRFM_infer
 if __name__ == '__main__':
     # Usage examples
     from_pretrained = '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint' # TODO, update path
-    model = structRFM_infer(from_pretrained=from_pretrained, max_length=514)
+    model_paras = dict(max_length=514, dim=768, layer=12, num_attention_heads=12)
+    model = structRFM_infer(from_pretrained=from_pretrained, **model_paras)
 
     # unmask seq
     unmasked_seq, pred_tokens, top_tokens_list = model.unmask('A[mask]GUAGUAGUCCCG[mask]AAUG', top_k=2)

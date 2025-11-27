@@ -1,6 +1,3 @@
-# pip install structRFM-0.0.1.tar.gz
-# pip install transformers, datasets
-
 import os , sys
 import json
 import pprint 

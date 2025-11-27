@@ -60,8 +60,13 @@ def cosine_similarity(x1, x2):
     # x1: [b, d], x2: [b, d]
 
     assert x1.shape == x2.shape
-
-    return np.sum(x1 * x2, axis=1) / (np.linalg.norm(x1, axis=1) * np.linalg.norm(x2, axis=1))
+    N1 = np.linalg.norm(x1, axis=1)
+    N2 = np.linalg.norm(x2, axis=1)
+    N = N1 * N2
+    if N.all() == 0:
+        return 1
+    else:
+        return np.sum(x1 * x2, axis=1) /N
 
 
 ## calcualute the cosine similarity between two sets of embeddings 
@@ -222,6 +227,7 @@ def emb_rfam_cos_sim_cal(features_pkl,
             key_a, key_b = random.sample(rf_to_key[sample_rf], 2)
             pos_samples[idx, 0, :] = key_to_seq_repr[key_a]
             pos_samples[idx, 1, :] = key_to_seq_repr[key_b]
+            # print(pos_samples[idx, 0, :]) # todo
 
             rf_a, rf_b = random.sample(rfs, 2)
             key_a, key_b = random.choice(rf_to_key[rf_a]), random.choice(rf_to_key[rf_b])

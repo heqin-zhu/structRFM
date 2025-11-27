@@ -1,33 +1,34 @@
-'''
-Author: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
-Date: 2025-06-20 16:03:00
-LastEditors: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
-LastEditTime: 2025-06-25 18:32:36
-FilePath: /coding/RNA_Zero_Shot/structRFM/demo.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-'''
-# pip install structRFM-0.0.1.tar.gz
-# pip install transformers, datasets
+import os 
+import argparse
 
 from structRFM.infer import structRFM_infer 
 from task1_ss.evaluate_heatmap import mat2connects, connects2dbn, cal_metric_pairwise, attnmap_to_cont
 import numpy as np 
-import os 
 from multiprocessing import Pool 
 from extract_embs.tools import fftCal, emb_archiveII_cos_sim_cal, metricCal
 import pandas as pd 
 import pickle
 import torch 
 
+
 num_cores = os.cpu_count()
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--checkpoint_path', type=str, default='/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
+    parser.add_argument('--model_name', type=str, default='structRFM')
+    parser.add_argument('-g', '--gpu', type=str, default='0')
+    parser.add_argument('-L', '--max_length', type=int, default=514)
+    parser.add_argument('--num_attention_heads', type=int, default=12)
+    parser.add_argument('--dim', type=int, default=768)
+    parser.add_argument('--layer', type=int, default=12)
+    args = parser.parse_args()
+    return args
 
-## single processing 
 
-if __name__ == '__main__':
-    from_pretrained = os.getenv('structRFM_checkpoint', '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
-    model = structRFM_infer(from_pretrained=from_pretrained, max_length=514, device='cuda:7')
+def run_archiveII(from_pretrained, model_name=None, gpu='0', max_length=514, **model_paras):
+    model = structRFM_infer(from_pretrained=from_pretrained, device=f'cuda:{gpu}', max_length=max_length, **model_paras)
     prefix = '.'
 
     # ## Step 1: load the data: '5s', '5s_Bacillus-cereus-1', 'UUUGGUGAUGAUGGCAGAGAGGUCACACCCGUUCCCAUACCGAACACGGAAGUUAAGCUCUCUAGCGCCGAUGGUAGUUGGGACCUUGUCCCUGUGAGAGUAGGACGUCGCCAAG')
@@ -37,7 +38,8 @@ if __name__ == '__main__':
     # ## embedding the sequences, and then using FFN to get the final features, and saving the features to a file
     # ## 'labels': 5s, 'keys':'5s_Bacillus-cereus-1' , 'seqs', 'seq_repr', only change the 'seq_repr' 
 
-    model_name = "structRFM"  # model name, used for saving the results
+    
+    model_name = model_name or "structRFM" # model name, used for saving the results
     feature_path = os.path.join(prefix, f'task3_archivell/embs/{model_name}/embs.pkl') # TODO, update path
     # emb_data = pickle.load(open(feature_path, 'rb'))
 
@@ -50,8 +52,8 @@ if __name__ == '__main__':
         
         for i, (label, key, seq) in enumerate(data):
             # print(f'Processing {i+1}/{len(data)}: {label}')
-            if len(seq) > 512:
-                print(f'Skipping {label} due to length {len(seq)} > 512')
+            if len(seq) > max_length-2:
+                print(f'Skipping {label} due to length {len(seq)} > {max_length-2}')
                 continue
             features = model.extract_raw_feature(seq, return_all=False, output_attentions=False)
             # print(features.shape)
@@ -161,3 +163,8 @@ Average MCC: 0.214±0.001
 Average thresh: 0.48±0.0
 Average overlap_ratio: 0.48±0.001
 '''
+
+if __name__ == '__main__':
+    args = parse_args()
+    from_pretrained = os.getenv('structRFM_checkpoint', args.checkpoint_path)
+    run_archiveII(from_pretrained, model_name=args.model_name, gpu=args.gpu, max_length=args.max_length, dim=args.dim, layer=args.layer, num_attention_heads=args.num_attention_heads)

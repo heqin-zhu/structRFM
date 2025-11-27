@@ -98,11 +98,11 @@ class structRFM_infer:
             seq: str
                 seq_len
             return: Tensor
-               (all_layers=13) x seq_len x hidden_size768
+               (all_layers=13) x seq_len x hidden_size
         '''
         attention = None
         outputs = self.model_forward(seq, output_attentions=True, is_training=is_training)
-        hidden_states = outputs.hidden_states  # tuple(B x (seq_len+2) x hidden_size768), tuple_len = (1+layer12) 
+        hidden_states = outputs.hidden_states  # tuple(B x (seq_len+2) x hidden_size), tuple_len = (1+layer12) 
         ## batch_size = 1, use the first one 0 of this batch
         sls = slice(None, None) if include_special else slice(1, -1)
         out_features = [hidd[0, sls, :] for hidd in hidden_states] # tuple(seq_len x hidden_size), tuple_len = (1+layer12)
@@ -117,18 +117,18 @@ class structRFM_infer:
         '''
             return feature_dic, with keys: cls_feat, seq_feat, mat_feat
         '''
-        # feat  tuple: layer=12, tuple[i]: batch x L x hidden_dim(=768)
+        # feat  tuple: layer=12, tuple[i]: batch x L x hidden_dim(=768),  large: hidden_dim=1024
         features = self.extract_raw_feature(seq, return_all=True)
-        ## (1+L+1)x 768,  [CLS] seq [SEP]
+        ## (1+L+1)x dim,  [CLS] seq [SEP]
         last_feat = features[-1]
-        cls_feat = last_feat[0,:] # 1x768
-        seq_feat = last_feat[1:-1, :] # Lx768
+        cls_feat = last_feat[0,:] # 1xdim
+        seq_feat = last_feat[1:-1, :] # Lxdim
         mat_feat = seq_feat @ seq_feat.transpose(-1,-2) # LxL
         # L = len(seq)
-        # mat_feat = seq_feat.unsqueeze(-2).unsqueeze(-1)*seq_feat.unsqueeze(-3).unsqueeze(-2) # LxLx768x768 ## cost too much memory
+        # mat_feat = seq_feat.unsqueeze(-2).unsqueeze(-1)*seq_feat.unsqueeze(-3).unsqueeze(-2) # LxLxdimxdim ## cost too much memory
         # mat_feat = mat_feat.reshape(L, L, -1).mean(dim=-1)
         return {
-                'cls_feat': cls_feat, # 1x768
-                'seq_feat': seq_feat, # Lx768
+                'cls_feat': cls_feat, # 1xdim
+                'seq_feat': seq_feat, # Lxdim
                 'mat_feat': mat_feat, # LxL
                }
