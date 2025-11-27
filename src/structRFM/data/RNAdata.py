@@ -19,7 +19,7 @@ def process_ar_input_seq_and_connects(seq, connects_str, bos_token='<BOS>', eos_
     # use literal_eval instread of json.loads, since json.loads is strict: such as 1. 'str' will be wrong, 2. "null", not "None"
     dbn = connects2dbn(literal_eval(connects_str))
     dbn = ''.join([i if i in dbn_vocab else '?' for i in dbn])
-    text = f"{bos_token}{seq}<SS>{dbn}{eos_token}" # head/rear special tokens will be removed and readded.
+    text = f"{bos_token}{dbn}<SS>{seq}{eos_token}" # head/rear special tokens will be removed and readded.
     return text
 
 
