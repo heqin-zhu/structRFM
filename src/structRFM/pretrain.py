@@ -48,6 +48,7 @@ def parse_args():
     parser.add_argument('--epoch', type=int, default=30, help='learning rate')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--mlm_structure', action='store_true')
+    parser.add_argument('--mlm_probability', type=float, default=0.15)
     args = parser.parse_args()
     return args
 
@@ -99,22 +100,24 @@ def pretrain(args, tag):
     # DataCollatorWithPadding, DataCollatorForSeq2Seq, ForWholeWordMask
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm= tag=='mlm')
     print('MLM_structure:', args.mlm_structure)
+    total_steps = len(split_dataset['train'])//args.batch_size 
     if tag == 'mlm' and args.mlm_structure:
         # structure-directed masking
-        data_collator = PretrainDataCollatorWithStructure(tokenizer=tokenizer, mlm=True)
+        data_collator = PretrainDataCollatorWithStructure(tokenizer=tokenizer, mlm=True, mlm_probability=args.mlm_probability)
 
     model_size = f'{args.dim}_{args.layer}'
-    total_steps = 21477078//args.batch_size 
     step_interval = total_steps//10
+    extra_training_args = {}
     training_args = TrainingArguments(
         output_dir=args.run_name,
         learning_rate=args.lr,
         num_train_epochs=args.epoch,
         max_steps=total_steps*args.epoch,
         weight_decay=0., # TODO
-        gradient_accumulation_steps=1, # 显存不够大 bs， 增加此参数
+        gradient_accumulation_steps=1, # if gpu memory is not enough, increase this
         per_device_train_batch_size=args.batch_size,
-        # warmup_steps=10_000,
+        warmup_steps=2_000, 
+        max_grad_norm=1.0,
         logging_strategy="steps",
         logging_steps=step_interval//10,
         evaluation_strategy="steps",
@@ -126,6 +129,7 @@ def pretrain(args, tag):
         greater_is_better=False,
         fp16=True,
         report_to = "tensorboard",
+        **extra_training_args,
     )
     my_callbacks = []
     trainer = Trainer(
