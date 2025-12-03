@@ -145,6 +145,13 @@ def run_archiveII(from_pretrained, model_name=None, gpu='0', max_length=514, **m
     std_MCC = round(np.std(all_MCC), 3)
     std_thresh = round(np.std(all_thresh), 3)
     std_overlap_ratio = round(np.std(all_overlap_ratio), 3)
+
+    metric_path = 'metric.csv'
+    if not os.path.exists(metric_path):
+        with open(metric_path, 'w') as fp:
+            fp.write(f'model_name,dataset,avg_delta_mean,std_delta_mean,avg_F1,std_F1,avg_MCC,std_MCC,avg_thresh,std_thresh,avg_overlap_ratio,std_overlap_ratio,avg_delta_median,std_delta_median\n')
+    with open(metric_path, 'a') as fp:
+        fp.write(f'{model_name},archiveII,{avg_delta_mean},{std_delta_mean},{avg_F1},{std_F1},{avg_MCC},{std_MCC},{avg_thresh},{std_thresh},{avg_overlap_ratio},{std_overlap_ratio},{avg_delta_median},{std_delta_median}\n')
     
     print(f'Average results for structRFM across {n_runs} runs:')
     print(f'Average delta_mean: {avg_delta_mean}±{std_delta_mean}')

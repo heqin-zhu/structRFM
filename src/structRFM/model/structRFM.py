@@ -73,7 +73,7 @@ def get_bert(dim, layer, num_attention_heads=12, from_pretrained=None, max_lengt
             raise Exception(f'[Error]: Pre-trained length: {pretrained_length}> max_length: {tokenizer.model_max_length}')
         elif pretrained_length<tokenizer.model_max_length:
             model = model_class(model_config)
-            print(f'[Warning]: Pre-trained length: {pretrained_length}, adaptating on long sequences: {tokenizer.model_max_length}')
+            print(f'[Warning]: Loading model from "{from_pretrained}": Pre-trained length={pretrained_length}, adaptating on long sequences: {tokenizer.model_max_length}')
             state_dict = ori_model.state_dict()
             del state_dict["bert.embeddings.position_embeddings.weight"]  # del pos embed weight
             model.load_state_dict(state_dict, strict=False)
@@ -84,7 +84,7 @@ def get_bert(dim, layer, num_attention_heads=12, from_pretrained=None, max_lengt
             model.bert.embeddings.position_embeddings.weight.data = new_pos_emb
             return model
         else:
-            print(f'Pre-trained max_length: {tokenizer.model_max_length}')
+            print(f'Loading model from "{from_pretrained}", length={tokenizer.model_max_length}')
             return model_class.from_pretrained(from_pretrained, config=model_config)
     else:
         return model_class(config=model_config)

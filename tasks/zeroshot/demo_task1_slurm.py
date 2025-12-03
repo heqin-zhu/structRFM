@@ -2,13 +2,12 @@ import os , sys
 import json
 import pprint 
 import pickle
+import argparse
 
 import tqdm
 import numpy as np 
 import pandas as pd
 import torch 
-
-import RNAFM.fm as fm
 
 
 from structRFM.infer import structRFM_infer
@@ -80,7 +79,7 @@ num_thresh = 1000  # 0.001 step, from 0 to 1
 thresh_values = np.linspace(0, 1, num_thresh)  
 
 
-def get_attentions(dest, seq, seq_name):
+def get_attentions(model, dest, seq, seq_name, max_length=514):
     cur_dest = os.path.join(dest, 'attn_pkl')
     os.makedirs(cur_dest, exist_ok=True)
     cur_path = os.path.join(cur_dest, seq_name+'.pkl')
@@ -88,8 +87,8 @@ def get_attentions(dest, seq, seq_name):
     if os.path.exists(cur_path):
         attentions = pickle.load(open(cur_path, 'rb'))
     else:
-        if len(seq)>512:
-            seq = seq[:512]
+        if len(seq)>max_length-2:
+            seq = seq[:max_length-2]
         features, attentions = model.extract_raw_feature(seq, return_all=True, output_attentions=True)
         attentions = tuple([atten[:, :, 1:-1, 1:-1].cpu() for atten in attentions])
         with open(cur_path, "wb") as f:
@@ -97,7 +96,7 @@ def get_attentions(dest, seq, seq_name):
     return attentions
 
 
-def get_layer_outputs(dest, seq, seq_name):
+def get_layer_outputs(model, dest, seq, seq_name, max_length=514):
     cur_dest = os.path.join(dest, 'layer_outputs')
     os.makedirs(cur_dest, exist_ok=True)
     cur_path = os.path.join(cur_dest, seq_name+'.pkl')
@@ -105,8 +104,8 @@ def get_layer_outputs(dest, seq, seq_name):
     if os.path.exists(cur_path):
         layer_outputs = pickle.load(open(cur_path, 'rb'))
     else:
-        if len(seq)>512:
-            seq = seq[:512]
+        if len(seq)>max_length-2:
+            seq = seq[:max_length-2]
         features, attentions = model.extract_raw_feature(seq, return_all=True, output_attentions=True)
         layer_outputs = tuple([feat[1:-1, :].cpu() for feat in features])
         with open(cur_path, "wb") as f:
@@ -114,7 +113,7 @@ def get_layer_outputs(dest, seq, seq_name):
     return layer_outputs
 
 
-def val_layer_head(dest, result_dir_name, val_path, layer, head, postprocess_wo_thresh=False, gt_pair_mode='all'):
+def val_layer_head(model, dest, result_dir_name, val_path, layer, head, postprocess_wo_thresh=False, gt_pair_mode='all', max_length=514):
     val_data = read_seq_ss_data(val_path)
     cur_dest = os.path.join(dest, result_dir_name)
     os.makedirs(cur_dest, exist_ok=True)
@@ -125,7 +124,7 @@ def val_layer_head(dest, result_dir_name, val_path, layer, head, postprocess_wo_
             _, gt_connects = dispart_nc_pairs(seq, gt_connects)
         elif gt_pair_mode=='canonical':
             gt_connects, _ = dispart_nc_pairs(seq, gt_connects)
-        attentions = get_attentions(dest, seq, name)
+        attentions = get_attentions(model, dest, seq, name, max_length=max_length)
         matrix = attentions[layer][0, head]
         for thresh_idx, thresh in enumerate(thresh_values):
             f1 = cal_metric(matrix.cpu(), gt_connects, seq, thresh, postprocess_wo_thresh)['F1']
@@ -143,7 +142,7 @@ def val_layer_head(dest, result_dir_name, val_path, layer, head, postprocess_wo_
         json.dump(thresh_name_F1, fp)
 
 
-def val_layer_outputs(dest, result_dir_name, val_path, layer, postprocess_wo_thresh=False, gt_pair_mode='all'):
+def val_layer_outputs(model, dest, result_dir_name, val_path, layer, postprocess_wo_thresh=False, gt_pair_mode='all', max_length=514):
     val_data = read_seq_ss_data(val_path)
     cur_dest = os.path.join(dest, result_dir_name)
     os.makedirs(cur_dest, exist_ok=True)
@@ -154,7 +153,7 @@ def val_layer_outputs(dest, result_dir_name, val_path, layer, postprocess_wo_thr
             _, gt_connects = dispart_nc_pairs(seq, gt_connects)
         elif gt_pair_mode=='canonical':
             gt_connects, _ = dispart_nc_pairs(seq, gt_connects)
-        layer_outputs = get_layer_outputs(dest, seq, name)
+        layer_outputs = get_layer_outputs(model, dest, seq, name, max_length=max_length)
         feat = layer_outputs[layer]
         matrix = feat @ feat.transpose(-1, -2)
         for thresh_idx, thresh in enumerate(thresh_values):
@@ -173,7 +172,7 @@ def val_layer_outputs(dest, result_dir_name, val_path, layer, postprocess_wo_thr
         json.dump(thresh_name_F1, fp)
 
 
-def cal_test_metric(dest, val_dir, test_path, postprocess_wo_thresh=False):
+def cal_test_metric(model, dest, val_dir, test_path, postprocess_wo_thresh=False, max_length=514):
     test_data = read_seq_ss_data(test_path)
     test_name = os.path.basename(test_path)
     test_name = test_name[:test_name.rfind('.')]
@@ -191,9 +190,9 @@ def cal_test_metric(dest, val_dir, test_path, postprocess_wo_thresh=False):
     df_data = []
     json_data = {}
     for i, (name, seq, gt_connects, _) in enumerate(test_data):
-        if len(seq)>512 or len(seq)!=len(gt_connects): # discard len>512
+        if len(seq)>max_length-2 or len(seq)!=len(gt_connects): # discard len>max_length-2
             continue
-        attentions = get_attentions(dest, seq, name)
+        attentions = get_attentions(model, dest, seq, name)
         for layer in range(num_layers):
             for head in range(num_heads):
                 matrix = attentions[layer][0, head]
@@ -225,27 +224,31 @@ def cal_test_metric(dest, val_dir, test_path, postprocess_wo_thresh=False):
     with open(os.path.join(dest, save_name), 'w') as fp:
         json.dump(json_data, fp)
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--checkpoint_path', type=str, default='/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
+    parser.add_argument('--model_name', type=str, default='structRFM')
+    parser.add_argument('-g', '--gpu', type=str, default='0')
+    parser.add_argument('-L', '--max_length', type=int, default=514)
+    parser.add_argument('--num_attention_heads', type=int, default=12)
+    parser.add_argument('--layer', type=int, default=12)
+    parser.add_argument('--dim', type=int, default=768)
+    parser.add_argument('--head', type=int, default=12)
+    parser.add_argument('--layer_idx', type=int, default=0) # the i-th layer
+    parser.add_argument('--head_idx', type=int, default=0)  # the j-th head
+    args = parser.parse_args()
+    return args
 
-if __name__ == '__main__':
-    if len(sys.argv)==3:
-        layer, head = sys.argv[1:3]
-        layer, head = int(layer), int(head)
-        print(layer, head)
-    elif len(sys.argv)==1:
-        layer = head = None
-    elif len(sys.argv)==2:
-        layer = int(sys.argv[1])
-        head = None
-    else:
-        print(sys.argv)
-        raise Exception()
-    postprocess_wo_thresh = False
+
+def run_zeroshot_ssp(from_pretrained, model_name=None, gpu='0', max_length=514, postprocess_wo_thresh=False, layer_idx=0, head_idx=0, **model_paras):
 
     gt_pair_mode = 'non-canonical' # 'all', 'non-canonical', 'canonical'
     # gt_pair_mode = 'non-canonical' # 'all', 'non-canonical', 'canonical'
+    model_name = model_name or "structRFM" # model name, used for saving the results
+    run_name = model_name or 'structRFM'
+    if postprocess_wo_thresh:
+        run_name = run_name + '_wo-thresh'
 
-    run_name = 'structRFM-wo-thresh' if postprocess_wo_thresh else 'structRFM'
-    from_pretrained = os.getenv('structRFM_checkpoint', '/public/share/heqinzhu_share/structRFM/structRFM_checkpoint')
     
     val_file = 'VL_40_key_seq_contact_idx.pkl'
     val_file = 'dbn_PDB_test.txt'
@@ -258,7 +261,7 @@ if __name__ == '__main__':
 
     val_path = os.path.join(data_dir, val_file)
 
-    model = structRFM_infer(from_pretrained=from_pretrained, max_length=514)
+    model = structRFM_infer(from_pretrained=from_pretrained, device=f'cuda:{gpu}', max_length=max_length, **model_paras)
     # model, alphabet = fm.pretrained.rna_fm_t12()
 
     ## cache all attn matrixs
@@ -271,8 +274,8 @@ if __name__ == '__main__':
     for f in files:
         data = read_seq_ss_data(os.path.join(data_dir, f))
         for i, (name, seq, gt_connects, _) in enumerate(tqdm.tqdm(data)):
-            get_attentions(os.path.join(dest), seq, name)
-            get_layer_outputs(os.path.join(dest), seq, name)
+            get_attentions(model, os.path.join(dest), seq, name)
+            get_layer_outputs(model, os.path.join(dest), seq, name, max_length=max_length)
 
     existings = []
 
@@ -281,23 +284,29 @@ if __name__ == '__main__':
         gt_pair_flag = '_nc'
     elif gt_pair_mode == 'canonical':
         gt_pair_flag = '_c'
-    if layer is not None and head is not None:
+    if layer_idx is not None and head_idx is not None:
         result_dir_name = 'val_result' + gt_pair_flag
         result_dir = os.path.join(dest, result_dir_name)
         if os.path.exists(result_dir):
             existings = ['_'.join(f.split('_')[:2]) for f in os.listdir(result_dir)]
-        if f'layer{layer:02d}_head{head:02d}' not in existings:
-            val_layer_head(dest, result_dir_name, val_path, layer, head, postprocess_wo_thresh, gt_pair_flag)
-    elif layer is not None and head is None:
+        if f'layer{layer_idx:02d}_head{head_idx:02d}' not in existings:
+            val_layer_head(model, dest, result_dir_name, val_path, layer_idx, head_idx, postprocess_wo_thresh, gt_pair_flag, max_length=max_length)
+    elif layer_idx is not None and head_idx is None:
         result_dir_name = 'val_result_layer_outputs' + gt_pair_flag
         result_dir = os.path.join(dest, result_dir_name)
         if os.path.exists(result_dir):
             existings = ['_'.join(f.split('_')[0]) for f in os.listdir(result_dir)]
-        if f'layer{layer:02d}' not in existings:
-            val_layer_outputs(dest, result_dir_name, val_path, layer, postprocess_wo_thresh, gt_pair_flag)
+        if f'layer{layer_idx:02d}' not in existings:
+            val_layer_outputs(model, dest, result_dir_name, val_path, layer_idx, postprocess_wo_thresh, gt_pair_flag, max_length=max_length)
 
     ## after running all val
     val_dir = 'val_result'
-    if layer is None and head is None:
+    if layer_idx is None and head_idx is None:
         for f in test_files:
-            cal_test_metric(dest, val_dir, os.path.join(data_dir, f), postprocess_wo_thresh)
+            cal_test_metric(model, dest, val_dir, os.path.join(data_dir, f), postprocess_wo_thresh, max_length=max_length)
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    from_pretrained = os.getenv('structRFM_checkpoint', args.checkpoint_path)
+    run_zeroshot_ssp(from_pretrained, model_name=args.model_name, gpu=args.gpu, max_length=args.max_length, postprocess_wo_thresh=False,  dim=args.dim, layer_idx=args.layer_idx, head_idx=args.head_idx, layer=args.layer, num_attention_heads=args.num_attention_heads)

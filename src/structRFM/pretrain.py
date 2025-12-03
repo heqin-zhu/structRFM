@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument('--num_attention_heads', type=int, default=12)
     parser.add_argument('--model_scale', type=str, choices=['base', 'large', 'custom'], default='custom')
     parser.add_argument('--from_pretrained', type=str, help='for model')
-    parser.add_argument('--resume_from_checkpoint', type=str, help='checkpoint path for trainer, default resume_from_checkpoint=True')
+    parser.add_argument('--resume_from_checkpoint', type=str, help='for trainer and checkpoint, default resume_from_checkpoint=True')
 
     # Training args
     parser.add_argument('--use_DDP', action='store_true')
