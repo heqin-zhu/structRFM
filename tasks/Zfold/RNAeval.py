@@ -10,8 +10,7 @@ from Bio.PDB import MMCIFParser, PDBIO
 
 
 from BPfold.util.misc import get_file_name
-from BPfold.util.RNA_kit import connects2dbn, dbn2connects, cal_metric
-
+from BPfold.util.RNA_kit import connects2dbn, connects2mat, dbn2connects, cal_metric
 
 def dbn2connects(dbn, strict=True):
     alphabet = ''.join([chr(ord('A')+i) for i in range(26)])
@@ -144,6 +143,8 @@ def TMscore_cal(model, native, bin_dir='.'):
                 'align_pred_seq': align_pred_seq.upper(), 
                 'align_gt_seq': align_gt_seq.upper(),
                }
+    print(f'[Warning]: No RMSD metric found: model={model}, native={native}')
+    return dict()
 
 
 def rnatool_RMSD(target, pred):
@@ -219,7 +220,7 @@ def rnatool_note():
     # rna_refinement.py - a wrapper for QRNAS (Quick Refinement of Nucleic Acids)
 
 
-def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True):
+def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.'):
     def pad_dbn_by_aligned_seq(seq, ss,):
         pad_ss = []
         ct = 0
@@ -256,7 +257,9 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True):
                 pad_ss.append(0)
         return pad_ss
 
-    m_dic = TMscore_cal(pred_pdb, gt_pdb)
+    m_dic = TMscore_cal(pred_pdb, gt_pdb, bin_dir=bin_dir)
+    m_dic['epsilon_RMSD'] = epsilon_RMSD(pred_pdb, gt_pdb)
+    # print(m_dic)
     print(m_dic['align_gt_seq'], 'align gt seq')
     print(m_dic['align_pred_seq'], 'align pred seq')
     if eval_SS:
@@ -287,7 +290,7 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True):
 
         align_gt_ss = pad_connects_by_aligned_seq(m_dic['align_gt_seq'], gt_ss)
         align_pred_ss = pad_connects_by_aligned_seq(m_dic['align_pred_seq'], pred_ss)
-        SS_metric_dic = cal_metric(align_pred_ss, align_gt_ss) # F1, P, R, INF, MCC
+        SS_metric_dic = cal_metric(connects2mat(align_pred_ss), connects2mat(align_gt_ss)) # F1, P, R, INF, MCC
         print('SS metric:', SS_metric_dic)
         m_dic['F1'] = SS_metric_dic['F1']
         m_dic['Precision'] = SS_metric_dic['Precision']
@@ -299,7 +302,7 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True):
     return m_dic
 
 
-def cal_all_pdbs(dest, pred_pre, gt_pre, models, only_CASP=False, eval_SS=True):
+def cal_all_pdbs(dest, pred_pre, gt_pre, models, only_CASP=False, eval_SS=True, bin_dir='.'):
     tmp_dir = '.tmp_cif2pdb'
     os.makedirs(tmp_dir, exist_ok=True)
     all_data = []
@@ -328,7 +331,7 @@ def cal_all_pdbs(dest, pred_pre, gt_pre, models, only_CASP=False, eval_SS=True):
                     print()
                     print('gt_pdb:', gt_pdb)
                     print('pred_pdb:', pred_pdb)
-                    cur_data = cal_all_metrics(pred_pdb, gt_pdb, eval_SS)
+                    cur_data = cal_all_metrics(pred_pdb, gt_pdb, eval_SS, bin_dir=bin_dir)
                     all_data.append(dict(model=model, dataset=dataset, name=get_file_name(f), **cur_data))
     df = pd.DataFrame(all_data)
     df.to_csv(dest, index=False)
@@ -362,21 +365,56 @@ def prepare_af3_pred(dest, src):
         cif2pdb(src_path, dest_path)
 
 
-if __name__ == '__main__':
-    only_CASP = False
-    synthetic_names = ['R1126', 'R1128', 'R1136', 'R1138']
-    metric_names = ['RMSD', 'F1']
-    pred_pre = 'pred_results'
-    gt_pre = '/public/share/heqinzhu_share/RNA3d/native'
+### Additional evaluation    
 
-    # prepare_af3_pred(os.path.join(pred_pre, 'af3'), 'af3_results')
+## #1
+def stereochemical(pdb_path):
+    ''' stereochemical quality
+    # https://sw-tools.rcsb.org/apps/MAXIT/source.html
+    # tar -xvf maxit-v10-linux64.tar.gz
+    # cd maxit-v10-linux64
+    # chmod +x maxit
+    # export PATH=$PWD:$PATH
+    '''
+    cache_dir = '.RNAeval_cache'
+    os.makedirs(cache_dir, exist_ok=True)
+    out_path = os.path.join(cache_dir, os.path.basename(pdb_path)+'.maxit.txt')
+    err_path = os.path.join(cache_dir, os.path.basename(pdb_path)+'.maxit.err')
+    os.system(f'maxit -input {pdb_path} > {out_path} 2> {err_Path}')
+    os.system(f"grep -Ei 'close|bond length|bond angle|planar|chirality|polymer' {out_path}")
+    raise NotImplementedError
+    return 
 
-    out_name = 'RNA3d_metrics.csv'
-    all_metric_path =  f'all_{out_name}'
 
-    models = [
-              'af3',
-              'trRosettaRNA',
-              'structRFM',
-             ]
-    cal_all_pdbs(all_metric_path, pred_pre, gt_pre, models, only_CASP)
+def entanglement():
+    # RNA 3D structure entanglement
+    # - https://www.cs.put.poznan.pl/mantczak/spider.zip
+    raise NotImplementedError
+
+
+def knot_artifact(pdb_path, ntrials=200):
+    '''
+    # 3. Knotted artifacts in predicted 3D RNA structures
+    - https://github.com/ilbsm/CASP15_knotted_artifacts
+    - pip install topoly
+    '''
+    import topoly
+    from topoly import alexander
+    coords = topoly.read_xyz(pdb_path, atoms=["P","O5'","C5'","C4'","C3'","O3'"])
+    result = alexander(coords, ntrials=ntrials) # random 闭合, compute Alexander polynomial
+    return result ## <50%: unknot, if knot, output knot type, such as "3_1" for trefoil knot
+
+
+## #2
+def epsilon_RMSD(pdb_path, ref_path):
+    '''
+        epsilon RMSD
+        pip install mdtraj
+        pip install barnaba
+    '''
+    import barnaba as bb 
+    try:
+        return bb.ermsd(ref_path, pdb_path)
+    except Exception as e:
+        print(e, pdb_path, ref_path)
+        return np.nan

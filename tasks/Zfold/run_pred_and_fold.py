@@ -20,8 +20,7 @@ if __name__ == '__main__':
     test_trrosettarna_with_MSA = True
 
     PREFIX = os.path.abspath('.')
-    # DATA_DIR = '/data/heqinzhu/gitrepo/RNA3d_test_data'
-    DATA_DIR = 'RNA3d_test_data'
+    DATA_DIR = os.path.join(PREFIX, 'Zfold_test_data')
     dest = 'output'
     pred_dir = os.path.join(dest, 'pred_results')
 

@@ -204,7 +204,7 @@ if __name__ == "__main__":
         if paths:
             args.checkpoint_path = os.path.join(args.output_dir, sorted(paths, key=lambda name: parse_epoch_from_str(name.split('_')[1]))[-1])
     begin_epoch = 0
-    print('checkpoint_path: {args.checkpoint_path}')
+    print(f'checkpoint_path: {args.checkpoint_path}')
     if args.checkpoint_path and os.path.exists(args.checkpoint_path):
         data = torch.load(args.checkpoint_path)
         if 'model' in data:

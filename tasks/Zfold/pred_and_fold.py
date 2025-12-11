@@ -10,9 +10,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+
 from Bio import SeqIO
 
 from BPfold.util.RNA_kit import read_fasta, write_fasta, read_SS
+
 
 def fasta_to_a3m(fasta_file, a3m_file):
     """
@@ -41,7 +43,7 @@ def pred_and_fold_all_with_MSA(name_seq_pairs, OUTPUT_DIR, PREFIX, data_dir, rer
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     PREDICT_PY = os.path.join(PREFIX, "src/Zfold/predict.py")
     FOLD_PY = os.path.join(PREFIX, "src/Zfold/fold.py")
-    PARA_DIR = os.path.join(PREFIX, "checkpoints")
+    PARA_DIR = os.path.join(PREFIX, 'Zfold_test_paras')
 
     msa_exts = ['afa', 'a3m']
 
@@ -110,7 +112,7 @@ def pred_and_fold_all_with_MSA(name_seq_pairs, OUTPUT_DIR, PREFIX, data_dir, rer
 
 def pred_and_fold_all(name_seq_pairs, OUTPUT_DIR, PREFIX, rerun=False, fast_test=False, LM_para_name='', Zfold_para_name=''):
     MODEL_DIR = os.path.join(PREFIX, "src/Zfold")
-    PARA_DIR = os.path.join(PREFIX, 'checkpoints')
+    PARA_DIR = os.path.join(PREFIX, 'Zfold_test_paras')
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     PREDICT_PY = os.path.join(MODEL_DIR, "predict.py")

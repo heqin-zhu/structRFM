@@ -135,8 +135,8 @@ def predict(model, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=
                         else:
                             pred_dict[k][a] /= count_2d
         else:
-            input_ss = get_stru_feat(LM, seq, ss_, stru_feat_type)
-            pred_dict = model(msa_feat.unsqueeze(0), input_ss.unsqueeze(0), res_id=res_id.to(device), msa_cutoff=args.nrows, use_outer_product_mean)['geoms']
+            input_ss = get_stru_feat(LM, seq, ss_, stru_feat_type, use_outer_product_mean=use_outer_product_mean)
+            pred_dict = model(msa_feat.unsqueeze(0), input_ss.unsqueeze(0), res_id=res_id.to(device), msa_cutoff=args.nrows)['geoms']
 
     for l in pred_dict:
         if isinstance(pred_dict[l], dict):

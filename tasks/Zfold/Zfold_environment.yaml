@@ -253,3 +253,5 @@ dependencies:
       - wget==3.2
       - xxhash==3.5.0
       - yarl==1.15.2
+      - barnaba
+      - topoly
