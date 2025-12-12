@@ -5,7 +5,7 @@ from base_classes import BaseCollator
 
 
 class SeqClsCollator(BaseCollator):
-    def __init__(self, max_seq_len, tokenizer, label2id, replace_T=True, replace_U=False, is_structRFM=False):
+    def __init__(self, max_seq_len, tokenizer, label2id, replace_T=True, replace_U=False, model_name='structRFM'):
         super(SeqClsCollator, self).__init__()
         self.max_seq_len = max_seq_len
         self.tokenizer = tokenizer
@@ -14,7 +14,16 @@ class SeqClsCollator(BaseCollator):
         assert replace_T ^ replace_U, "Only replace T or U."
         self.replace_T = replace_T
         self.replace_U = replace_U
-        self.is_structRFM = is_structRFM
+        self.model_name = model_name
+
+    def process_input(self, seq):
+        if self.model_name == 'structRFM':
+            return "[CLS]" + seq + "[SEP]"
+        elif self.model_name.lower().startswith('rinalmo'):
+            return seq
+        else:
+            kmer_text = seq2kmer(seq)
+            return "[CLS] " + kmer_text
 
     def __call__(self, raw_data_b):
         input_ids_b = []
@@ -28,11 +37,7 @@ class SeqClsCollator(BaseCollator):
                 "T", "U") if self.replace_T else seq.replace("U", "T")
             seq_b.append(seq)
             name_b.append(raw_data['name'])
-            kmer_text = seq2kmer(seq)
-            input_text = "[CLS] " + kmer_text
-            if self.is_structRFM:
-                input_text = "[CLS] " + kmer_text + " [SEP]"
-                input_text = input_text.replace(' ', '')
+            input_text = self.process_input(seq)
             input_ids = self.tokenizer(input_text)["input_ids"]
             if None in input_ids:
                 # replace all None with 0
@@ -70,13 +75,21 @@ class SeqClsCollator(BaseCollator):
 
 class RRDataCollator(BaseCollator):
     def __init__(self, max_seq_lens, tokenizer,
-                 replace_T=True, replace_U=False, is_structRFM=True):
+                 replace_T=True, replace_U=False, model_name='structRFM'):
         super(RRDataCollator, self).__init__()
         self.max_seq_lens = max_seq_lens
         self.tokenizer = tokenizer
         self.replace_T = replace_T
         self.replace_U = replace_U
-        self.is_structRFM = is_structRFM
+        self.model_name = model_name
+
+    def process_input(self, seq):
+        if self.model_name == 'structRFM':
+            return seq
+        elif self.model_name.lower().startswith('rinalmo'):
+            return seq # will wrong, should remove the special toekn in the next step: tokenizer(text)[1:-1]
+        else:
+            return seq2kmer(seq)
 
     def __call__(self, raw_data_b):
         (max_seq_length_a, max_seq_length_b) = self.max_seq_lens
@@ -103,12 +116,8 @@ class RRDataCollator(BaseCollator):
                 "T", "U") if self.replace_T else b_seq.replace("U", "T")
 
             # tokenizer
-            kmer_text_a = seq2kmer(a_seq)
-            kmer_text_b = seq2kmer(b_seq)
-            if self.is_structRFM:
-                # kmer_text = "[CLS] " + kmer_text + '[SEP]'
-                kmer_text_a = kmer_text_a.replace(' ', '')
-                kmer_text_b = kmer_text_b.replace(' ', '')
+            kmer_text_a = self.process_input(a_seq)
+            kmer_text_b = self.process_input(b_seq)
             input_ids_a = self.tokenizer(kmer_text_a)["input_ids"]
             if None in input_ids_a:
                 # replace all None with 0
@@ -155,13 +164,22 @@ class RRDataCollator(BaseCollator):
 
 
 class SspCollator(BaseCollator):
-    def __init__(self, max_seq_len, tokenizer, replace_T=True, replace_U=False, is_structRFM=True):
+    def __init__(self, max_seq_len, tokenizer, replace_T=True, replace_U=False, model_name='structRFM'):
         super(SspCollator, self).__init__()
         self.max_seq_len = max_seq_len
         self.tokenizer = tokenizer
         self.replace_T = replace_T
         self.replace_U = replace_U
-        self.is_structRFM = is_structRFM
+        self.model_name = model_name
+
+    def process_input(self, seq):
+        if self.model_name == 'structRFM':
+            return seq
+        elif self.model_name.lower().startswith('rinalmo'):
+            return seq
+        else:
+            kmer_text = seq2kmer(seq)
+            return "[CLS] " + kmer_text
 
     def __call__(self, raw_data_b):
         raw_data = raw_data_b[0]
@@ -171,11 +189,7 @@ class SspCollator(BaseCollator):
 
         input_seqs = raw_data["seq"].upper()
         input_seqs = input_seqs.replace("T", "U") if self.replace_T else input_seqs.replace("U", "T")
-        kmer_text = seq2kmer(input_seqs)
-        kmer_text = "[CLS] " + kmer_text
-        if self.is_structRFM:
-            # kmer_text = "[CLS] " + kmer_text + '[SEP]'
-            kmer_text = kmer_text.replace(' ', '')
+        kmer_text = self.process_input(input_seqs)
         input_ids_stack = self.tokenizer(kmer_text)["input_ids"]
         input_ids_stack = input_ids_stack[:self.max_seq_len]
         if None in input_ids_stack:

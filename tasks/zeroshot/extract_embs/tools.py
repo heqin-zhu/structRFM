@@ -357,15 +357,17 @@ def metricCal(
     FPR = fp / (tn + fp + eps)
     prec[np.isnan(prec)] = 0
     F1 = 2 * ((prec * sens) / (prec + sens + eps)) # or (2 * tp + eps) / (2 * tp + fp + fn + eps)
+    INF = (prec * sens)**0.5
     MCC = ((tp * tn) - (fp * fn)) / (np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) + eps)
 
     max_f1_pos = np.nanargmax(F1)
     threshold = T[0, max_f1_pos]
     Recall = recall[max_f1_pos]
     F1 = np.nanmax(F1)  # F1 Score
+    INF = np.nanmax(INF)
     MCC = MCC[max_f1_pos]
     PR1 = auc(recall, prec)
     PR = np.trapz(y=recall, x=prec)  # average precision-recall value
     AUC = np.trapz(y=sens, x=spec)
 
-    return {"F1":F1, "MCC":MCC, "PR1":PR1, "PR":PR,"AUC":AUC,"Recall":Recall, "thresh":threshold}
+    return {"F1":F1, "MCC":MCC, "PR1":PR1, "PR":PR,"AUC":AUC,"Recall":Recall, "thresh":threshold, 'INF': INF}

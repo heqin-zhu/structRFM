@@ -13,16 +13,15 @@ from losses import SeqClsLoss
 from metrics import SeqClsMetrics
 from trainers import SeqClsTrainer
 from tokenizer import RNATokenizer
-from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls
+from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls, RiNALMoForSeqCls
 
+from structRFM.model import get_structRFM_for_cls, get_model_scale
+from structRFM.data import get_mlm_tokenizer
 
-import sys
-sys.path.append('../..')
-from src.structRFM.model import get_structRFM_for_cls, get_model_scale
-from src.structRFM.data import get_mlm_tokenizer
+from multimolecule import RnaTokenizer, RiNALMoModel
 
 # ========== Define constants
-MODELS = ["RNABERT", "RNAMSM", "RNAFM", 'structRFM']
+MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', ]
 MAX_SEQ_LEN = {"RNABERT": 440,
                "RNAMSM": 512,
                "RNAFM": 512,
@@ -157,6 +156,12 @@ if __name__ == "__main__":
         if args.freeze_base:
             freeze(model)
         model = RNAFmForSeqCls(model)
+    elif args.model_name.lower().startswith('rinalmo'):
+        tokenizer = RnaTokenizer.from_pretrained(f"multimolecule/{args.model_name.lower()}")
+        pretrained_model = RiNALMoModel.from_pretrained(f"multimolecule/{args.model_name.lower()}")
+        if args.freeze_base:
+            freeze(pretrained_model)
+        pretrained_model = RiNALMoForSeqCls(pretrained_model)
     elif args.model_name == "structRFM":
         from_pretrained = args.LM_path
         model_paras = get_model_scale(args.model_scale)
@@ -204,7 +209,7 @@ if __name__ == "__main__":
     # ========== Create the data collator
     _collate_fn = SeqClsCollator(
         max_seq_len=args.max_seq_len, tokenizer=tokenizer,
-        label2id=LABEL2ID[args.dataset], replace_T=args.replace_T, replace_U=args.replace_U, is_structRFM=args.model_name.startswith('structRFM'))
+        label2id=LABEL2ID[args.dataset], replace_T=args.replace_T, replace_U=args.replace_U, model_name=args.model_name)
 
     # ========== Create the learning_rate scheduler (if need) and optimizer
     optimizer = AdamW(params=[para for para in model.parameters() if para.requires_grad], lr=args.learning_rate)

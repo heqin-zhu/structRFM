@@ -16,6 +16,7 @@ from ss_pred import (
     RNAFmForSsp,
     RNAMsmForSsp,
     structRFMForSsp,
+    RiNALMoForSsp,
 )
 from metrics import SspMetrics
 from collators import SspCollator
@@ -23,21 +24,32 @@ from losses import StructuredLoss
 from RNAdata import BPseqDataset
 from trainers import SspTrainer
 
-import sys
 from structRFM.model import get_structRFM, get_model_scale
 from structRFM.data import get_mlm_tokenizer
 
+from multimolecule import RnaTokenizer, RiNALMoModel
+
 # ========== Define constants
-MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM"]
+MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', ]
 TASKS = ["RNAStrAlign", "bpRNA1m"]
-MAX_SEQ_LEN = {"RNABERT": 440,
+MAX_SEQ_LEN = {
+               "RNABERT": 440,
                "RNAMSM": 1024,
                "RNAFM": 1024,
-               "structRFM": 514}
-EMBED_DIMS = {"RNABERT": 120,
+               "structRFM": 514,
+               "RiNALMo-Micro": 1024,
+               "RiNALMo-Mega": 1024,
+               "RiNALMo-Giga": 1024,
+              }
+EMBED_DIMS = {
+              "RNABERT": 120,
               "RNAMSM": 768,
               "RNAFM": 640,
-              "structRFM": 768}
+              "structRFM": 768,
+              "RiNALMo-Micro": 480,
+              "RiNALMo-Mega": 640,
+              "RiNALMo-Giga": 1280,
+             }
 DATASETS = {
     "RNAStrAlign": ("RNAStrAlign600.lst", "archiveII600.lst"),
     "bpRNA1m": ("TR0.lst", "TS0.lst"),
@@ -160,6 +172,12 @@ if __name__ == "__main__":
             freeze(pretrained_model)
         pretrained_model = RNAFmForSsp(pretrained_model)
         # pretrained_model._load_pretrained_bert(args.LM_path)
+    elif args.model_name.lower().startswith('rinalmo'):
+        tokenizer = RnaTokenizer.from_pretrained(f"multimolecule/{args.model_name.lower()}")
+        pretrained_model = RiNALMoModel.from_pretrained(f"multimolecule/{args.model_name.lower()}")
+        if args.freeze_base:
+            freeze(pretrained_model)
+        pretrained_model = RiNALMoForSsp(pretrained_model)
     elif args.model_name == 'structRFM':
         tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len)
         model_paras = get_model_scale(args.model_scale)
@@ -231,8 +249,7 @@ if __name__ == "__main__":
 
     # ========== Create the data collator
     _collate_fn = SspCollator(max_seq_len=args.max_seq_len,
-                              tokenizer=tokenizer, replace_T=args.replace_T, replace_U=args.replace_U, is_structRFM=args.model_name=='structRFM')
-
+                              tokenizer=tokenizer, replace_T=args.replace_T, replace_U=args.replace_U, model_name=args.model_name)
     # ========== Create the learning_rate scheduler (if need) and optimizer
     _optimizer = AdamW([
                        dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.lr),

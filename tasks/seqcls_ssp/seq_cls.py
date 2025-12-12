@@ -47,3 +47,14 @@ class RNAFmForSeqCls(nn.Module):
         representations = output["representations"][12][:, 0, :]
         logits = self.classifier(representations)
         return logits
+
+
+class RiNALMoForSeqCls(nn.Module):
+    def __init__(self, bert):
+        super(RiNALMoForSeqCls, self).__init__()
+        self.bert = bert
+
+    def forward(self, input_ids, attention_mask=None):
+        output = self.bert(input_ids, output_hidden_states=True, attention_mask=attention_mask)
+        embeddings = output.hidden_states[-1][:, 0, :]
+        return embeddings

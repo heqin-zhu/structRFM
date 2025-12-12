@@ -7,6 +7,8 @@ import torch.nn.functional as F
 
 import interface
 
+from multimolecule import RnaTokenizer, RiNALMoModel
+
 
 class SparseEmbedding(nn.Module):
 
@@ -241,7 +243,6 @@ class NeuralNet(nn.Module):
 
         x = self.embedding(['0' + s for s in seq])
         embeddings = self.proj_head(embeddings)
-
         x = torch.concat([x, embeddings.permute(0, 2, 1)], axis=1)
         x = self.encoder(x)
 
@@ -496,6 +497,18 @@ class RNAFmForSsp(nn.Module):
     def forward(self, input_ids):
         output = self.bert(input_ids, repr_layers=[12])
         embeddings = output["representations"][12].detach()
+        return embeddings
+
+
+class RiNALMoForSsp(nn.Module):
+    def __init__(self, bert):
+        super(RiNALMoForSsp, self).__init__()
+        self.bert = bert
+
+
+    def forward(self, input_ids, attention_mask=None):
+        output = self.bert(input_ids, output_hidden_states=True, attention_mask=attention_mask)
+        embeddings = output.hidden_states[-1][:, 1:, :].detach()
         return embeddings
 
 
