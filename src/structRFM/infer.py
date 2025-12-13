@@ -113,22 +113,26 @@ class structRFM_infer:
         else:
             return final_out_features
 
-    def extract_feature(self, seq):
+    def extract_feature(self, seq, is_training=False):
         '''
-            return feature_dic, with keys: cls_feat, seq_feat, mat_feat
+            return feature_dic, with keys: cls_feat, seq_feat, attn_feat, mat_feat
         '''
         # feat  tuple: layer=12, tuple[i]: batch x L x hidden_dim(=768),  large: hidden_dim=1024
-        features = self.extract_raw_feature(seq, return_all=True)
+        features, attentions = self.extract_raw_feature(seq, return_all=True, output_attentions=True, is_training=is_training)
         ## (1+L+1)x dim,  [CLS] seq [SEP]
         last_feat = features[-1]
         cls_feat = last_feat[0,:] # 1xdim
         seq_feat = last_feat[1:-1, :] # Lxdim
         mat_feat = seq_feat @ seq_feat.transpose(-1,-2) # LxL
         # L = len(seq)
-        # mat_feat = seq_feat.unsqueeze(-2).unsqueeze(-1)*seq_feat.unsqueeze(-3).unsqueeze(-2) # LxLxdimxdim ## cost too much memory
-        # mat_feat = mat_feat.reshape(L, L, -1).mean(dim=-1)
+        # outerprod_feat = seq_feat.unsqueeze(-2).unsqueeze(-1)*seq_feat.unsqueeze(-3).unsqueeze(-2).reshape(L,L,-1).mean(dim=-1) # LxLxdimxdim -> reshape ## cost too much memory
+
+        attn_feat = torch.cat(attentions, dim=1)[0][:, 1:-1, 1:-1] # layer * head x L x L
+        last_mean_attn_feat = attentions[-1][0, :, 1:-1, 1:-1].mean(dim=0)
         return {
                 'cls_feat': cls_feat, # 1xdim
                 'seq_feat': seq_feat, # Lxdim
+                'attn_feat': attn_feat, # layer*head x LxL
+                'last_mean_attn_feat': last_mean_attn_feat, # LxL
                 'mat_feat': mat_feat, # LxL
                }

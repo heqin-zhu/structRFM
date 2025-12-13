@@ -21,12 +21,12 @@ palette = sns.color_palette([
 models = ['rsb25', 'structRFM', 'dnabert_k3', 'dnabert_k6', 'dnabert-2', 'nt', 'lucaone', 
           'utr_lm', 'splicebert', 'birna-bert_bpe', 'birna-bert_nuc', 
           'rna_fm', 'rinalmo_micro', 'rnaernie', 'ernie_rna', 'prot_rna', 'rinalmo_mega', 
-          'rinalmo_giga', 'aido_rna_650m', 'rna_km', 'mp_rna', 'aido_rna_1600m']
+          'rinalmo_giga', 'aido_rna_650m', 'rna_km', 'mp_rna', 'aido_rna_1600m', 'evo2']
 model_names = ['RSB25', 'structRFM', 'DNABERT (k=3)', 'DNABERT (k=6)', 'DNABERT-2', 'NT', 'LucaOne', 
                'UTR_LM', 'SpliceBERT', 
                'BiRNA-BERT (BPE)', 'BiRNA-BERT (NUC)', 'RNA-FM', 'RiNALMo (micro)', 
                'RNAErnie', 'ERNIE-RNA', 'ProtRNA', 'RiNALMo (mega)', 'RiNALMo (giga)', 
-               "AIDO.RNA (650M)", 'RNA-km', 'MP-RNA', "AIDO.RNA (1.6B)"] 
+               "AIDO.RNA (650M)", 'RNA-km', 'MP-RNA', "AIDO.RNA (1.6B)", 'evo2'] 
 
 model_name_mapping = {k: v for k, v in zip(models, model_names)}
 
@@ -72,7 +72,7 @@ def cosine_similarity(x1, x2):
 ## calcualute the cosine similarity between two sets of embeddings 
 def emb_archiveII_cos_sim_cal(features_pkl, 
                     save_path, model_name,
-                    n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False, plot_title=False):
+                    n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False):
     with open(features_pkl, 'rb') as fr:
         dataset = pickle.load(fr)
 
@@ -182,11 +182,18 @@ def emb_archiveII_cos_sim_cal(features_pkl,
         ax.spines['right'].set_linewidth(0)
         ax.spines['right'].set_color('grey')
 
-        if plot_title:
-            plt.title(model_name_mapping[model_name])
-        plt.savefig(os.path.join(save_path, model_name + '_cos.png'), transparent=True, dpi=600, bbox_inches='tight')
-        plt.savefig(os.path.join(save_path, model_name + '_cos.svg'), bbox_inches='tight')
-        plt.savefig(os.path.join(save_path, model_name + '_cos.pdf'), bbox_inches='tight')
+        formats = ['.png', '.svg', '.pdf']
+
+        pre_name = model_name + '_cos'
+        for fmt in formats:
+            plt.savefig(os.path.join(save_path, pre_name + fmt), transparent=True, dpi=600, bbox_inches='tight')
+
+        # plot title
+        pre_name = pre_name + '_title'
+        plt.title(model_name_mapping[model_name])
+        for fmt in formats:
+            plt.savefig(os.path.join(save_path, pre_name + fmt), transparent=True, dpi=600, bbox_inches='tight')
+
         plt.close()
 
     # mean_pos, mean_neg = round(np.mean(pos_cos_similarity), 3), round(np.mean(neg_cos_similarity), 3)
@@ -200,7 +207,7 @@ def emb_archiveII_cos_sim_cal(features_pkl,
 
 def emb_rfam_cos_sim_cal(features_pkl, 
                          save_path, model_name,
-                         n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False, plot_title=False):
+                         n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False):
     with open(features_pkl, 'rb') as fr:
         dataset = pickle.load(fr)
 
@@ -307,11 +314,18 @@ def emb_rfam_cos_sim_cal(features_pkl,
         ax.spines['right'].set_linewidth(0)
         ax.spines['right'].set_color('grey')
         fig.subplots_adjust(bottom=0.2, top=0.95, left=0.05, right=0.95)
-        if plot_title:
-            plt.title(model_name_mapping[model_name])
-        plt.savefig(os.path.join(save_path, model_name + '_cos.png'), transparent=True, dpi=600, bbox_inches='tight')
-        plt.savefig(os.path.join(save_path, model_name + '_cos.svg'), bbox_inches='tight')
-        plt.savefig(os.path.join(save_path, model_name + '_cos.pdf'), bbox_inches='tight')
+        formats = ['.png', '.svg', '.pdf']
+
+        pre_name = model_name + '_cos'
+        for fmt in formats:
+            plt.savefig(os.path.join(save_path, pre_name + fmt), transparent=True, dpi=600, bbox_inches='tight')
+
+        # plot title
+        pre_name = pre_name + '_title'
+        plt.title(model_name_mapping[model_name])
+        for fmt in formats:
+            plt.savefig(os.path.join(save_path, pre_name + fmt), transparent=True, dpi=600, bbox_inches='tight')
+
         plt.close()
 
     # mean_pos, mean_neg = round(np.mean(pos_cos_similarity), 3), round(np.mean(neg_cos_similarity), 3)

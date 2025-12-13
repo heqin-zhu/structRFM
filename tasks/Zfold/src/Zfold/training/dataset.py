@@ -87,7 +87,10 @@ class MSADataset(Dataset):
                  LM=None,
                  freeze_LM=False,
                  use_outer_product_mean=False,
-                 ):
+                 LM_name='structRFM',
+                 evo2_embedding_path=None,
+                 use_attn_feat=False,
+                ):
         super(MSADataset, self).__init__()
 
         self.lst = lst
@@ -100,14 +103,18 @@ class MSADataset(Dataset):
         self.warning = warning
 
         self.use_outer_product_mean = use_outer_product_mean
+        self.use_attn_feat = use_attn_feat
         self.stru_feat_type = stru_feat_type
         if self.stru_feat_type!='SS':
             parent_dir = os.path.dirname(self.npz_dir)
-            self.LM_feat_dir = os.path.join(parent_dir, 'LM_feat')
+            self.LM_feat_dir = os.path.join(parent_dir, f'LM_feat/{LM_name}')
             os.makedirs(self.LM_feat_dir, exist_ok=True)
             self.LM = LM
         self.LM_feat_cache = {}
         self.freeze_LM = freeze_LM
+        self.LM_name = LM_name
+        if self.LM_name == 'evo2':
+            self.evo2_embedding_dic = np.load(evo2_embedding_path)
 
     def __len__(self):
         return len(self.lst)
@@ -214,7 +221,7 @@ class MSADataset(Dataset):
         sample['ss'] = torch.tensor(sample['ss'][crop][:, crop]).unsqueeze(-1)
         if self.stru_feat_type != 'SS':
             # L x L x 1
-            LM_feat = self.get_LM_feat(seq).unsqueeze(-1)
+            LM_feat = self.get_LM_feat(seq, pid).unsqueeze(-1)
             if self.stru_feat_type == 'LM':
                 sample['ss'] = LM_feat
             elif self.stru_feat_type == 'both':
@@ -264,24 +271,32 @@ class MSADataset(Dataset):
             raise Exception(f'Not implemented: use SPOTRNA instead: {pid}')
 
 
-    def get_LM_feat(self, seq, use_cache=False):
-        if self.freeze_LM and use_cache:
+    def get_LM_feat(self, seq, name='', use_cache=False):
+        if use_cache:
             if seq not in self.LM_feat_cache:
-                feat = self.LM.extract_raw_feature(seq, return_all=False)[1:-1, :]
-                feat2d = self.get_matrix_feature(feat)
-                self.LM_feat_cache[seq] = feat2d
-            feat2d = self.LM_feat_cache[seq]
+                self.LM_feat_cache[seq] = self.get_matrix_feature(seq, name)
+            return self.LM_feat_cache[seq]
         else:
-            feat = self.LM.extract_raw_feature(seq, return_all=False, is_training=not self.freeze_LM)[1:-1, :]
-            feat2d = self.get_matrix_feature(feat)
-        return feat2d
+            return self.get_matrix_feature(seq, name)
 
-    def get_matrix_feature(self, LM_embed):
-        if self.use_outer_product_mean:
-            shape = LM_embed.shape
-            return (LM_embed.unsqueeze(-3).unsqueeze(-2) * LM_embed.unsqueeze(-2).unsqueeze(-1)).reshape(*shape[:-1], shape[-2], -1).mean(dim=-1)
-        else:
-            return LM_embed @ LM_embed.transpose(1, 0)
+    def get_matrix_feature(self, seq, name):
+        if self.LM_name == 'structRFM':
+            if self.use_attn_feat:
+                feat_dic = self.LM.extract_feature(seq, is_training=not self.freeze_LM)
+                return feat_dic['last_mean_attn_feat']
+            else:
+                if self.use_outer_product_mean:
+                    LM_embed = feat_dic['seq_feat']
+                    shape = LM_embed.shape
+                    return (LM_embed.unsqueeze(-3).unsqueeze(-2) * LM_embed.unsqueeze(-2).unsqueeze(-1)).reshape(*shape[:-1], shape[-2], -1).mean(dim=-1)
+                else:
+                    return feat_dic['mat_feat']
+        elif self.LM_name.lower().startswith('rinalmo'):
+            raise NotImplementedError
+        elif self.LM_name == 'evo2':
+            feat = torch.from_numpy(self.evo2_embedding_dic[name][0])
+            return feat @ feat.transpose(-1, -2)
+
 
     def parse_labels(self, raw, l, crop=None):
         if crop is None: crop = np.arange(l)

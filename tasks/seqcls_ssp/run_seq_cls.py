@@ -161,7 +161,7 @@ if __name__ == "__main__":
         pretrained_model = RiNALMoModel.from_pretrained(f"multimolecule/{args.model_name.lower()}")
         if args.freeze_base:
             freeze(pretrained_model)
-        pretrained_model = RiNALMoForSeqCls(pretrained_model)
+        model = RiNALMoForSeqCls(pretrained_model)
     elif args.model_name == "structRFM":
         from_pretrained = args.LM_path
         model_paras = get_model_scale(args.model_scale)

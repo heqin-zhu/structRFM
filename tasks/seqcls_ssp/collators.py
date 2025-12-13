@@ -174,7 +174,7 @@ class SspCollator(BaseCollator):
 
     def process_input(self, seq):
         if self.model_name == 'structRFM':
-            return seq
+            return '[CLS]'+seq
         elif self.model_name.lower().startswith('rinalmo'):
             return seq
         else:

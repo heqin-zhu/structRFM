@@ -41,7 +41,10 @@ group.add_argument('--LM_path',
                    type=str,
                    default=os.getenv('structRFM_checkpoint'),
                   )
+group.add_argument('--LM_name', type=str, default='structRFM')
+group.add_argument('--evo2_embedding_path', type=str, default='/public2/home/heqinzhu/gitrepo/LLM/structRFM/evo2_embeddings/TSP_train.npz')
 group.add_argument('--msa_cutoff', type=int, default=200)
+group.add_argument('--milestones', nargs='+', help='milestone epochs for lr changing', default=[10, 15, 18, 20, 25])
 group.add_argument('-init_lr', '--init_lr',
                    type=float, default=5e-4,
                    help='Initial learning rate (default:0.0005)')
@@ -63,6 +66,7 @@ group.add_argument('-cpu', '--cpu',
                    help='Number of cpus to use (default:2)')
 group.add_argument('--freeze_LM', action='store_true')
 group.add_argument('--use_outer_product_mean', action='store_true')
+group.add_argument('--use_attn_feat', action='store_true')
 group.add_argument('-warning', '--warning',
                    action='store_true',
                    help='Whether to show warnings (default: False)')
@@ -168,12 +172,23 @@ if __name__ == '__main__':
     train_lst = list(set(full_lst) - set(val_lst))
 
     
-    LM = structRFM_infer(from_pretrained=args.LM_path, max_length=514, device=device)
-    if args.freeze_LM:
+    if os.path.exists(args.LM_path):
+        print('LM path', args.LM_path)
+    else:
+        print('[Warning]: Not exist: ', args.LM_path)
+
+    if args.LM_name == 'structRFM':
+        LM = structRFM_infer(from_pretrained=args.LM_path, max_length=514, device=device)
+    elif args.LM_name.lower().startswith('rinalmo'):
+        raise NotImplementedError
+    elif args.LM_name == 'evo2':
+        LM = None
+
+    if args.freeze_LM and args.LM_name !='evo2':
         for name, para in LM.model.named_parameters():
             para.requires_grad = False
-    train_set = MSADataset(train_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff, use_outer_product_mean=args.use_outer_product_mean)
-    val_set = MSADataset(val_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, random_=False, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff, use_outer_product_mean=args.use_outer_product_mean)
+    train_set = MSADataset(train_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff, use_outer_product_mean=args.use_outer_product_mean, LM_name=args.LM_name, evo2_embedding_path=args.evo2_embedding_path, use_attn_feat=args.use_attn_feat)
+    val_set = MSADataset(val_lst, npz_dir=args.npz_dir, lengthmax=args.crop_size, random_=False, warning=args.warning, stru_feat_type=args.stru_feat_type, LM=LM, freeze_LM=args.freeze_LM, msa_cutoff=args.msa_cutoff, use_outer_product_mean=args.use_outer_product_mean, LM_name=args.LM_name, evo2_embedding_path=args.evo2_embedding_path, use_attn_feat=args.use_attn_feat)
 
     num_samples = len(train_set)
     sampler = None
@@ -187,11 +202,17 @@ if __name__ == '__main__':
     ## initialize RNAformer
     model = DistPredictor(dim_2d=config['channels'], layers_2d=config['n_blocks'], stru_feat_type=args.stru_feat_type).to(device)
 
-    optimizer = torch.optim.Adam([
-                                  dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
-                                  dict(params=[para for para in LM.model.parameters() if para.requires_grad], lr=args.init_lr/2),
-                                 ])
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 15, 18, 20, 25], gamma=.5, last_epoch=-1)
+    if args.LM_name == 'evo2':
+        paras_list = [
+                  dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
+                 ]
+    else:
+        paras_list = [
+                  dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
+                  dict(params=[para for para in LM.model.parameters() if para.requires_grad], lr=args.init_lr/2),
+                 ]
+    optimizer = torch.optim.Adam(paras_list)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(i) for i in args.milestones], gamma=.5, last_epoch=-1)
     max_corr = -1
 
     # training
