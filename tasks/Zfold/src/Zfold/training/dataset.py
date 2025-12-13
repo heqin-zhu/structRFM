@@ -22,6 +22,8 @@ sys.path.insert(0, base_dir)
 from network.config import obj, n_bins
 from training.utils_training import subsample
 
+from multimolecule import RnaTokenizer, RiNALMoModel
+
 IDX_BASE_DIC = {i: base for i, base in enumerate('AUCG')}
 BASE_IDX_DIC = {base: i for i, base in IDX_BASE_DIC.items()}
 
@@ -115,6 +117,9 @@ class MSADataset(Dataset):
         self.LM_name = LM_name
         if self.LM_name == 'evo2':
             self.evo2_embedding_dic = np.load(evo2_embedding_path)
+        elif self.LM_name.lower().startswith('rinalmo'):
+            self.rinalmo_tokenizer = RnaTokenizer.from_pretrained(f"multimolecule/{self.LM_name.lower()}")
+            self.device = next(self.LM.parameters()).device
 
     def __len__(self):
         return len(self.lst)
@@ -221,7 +226,7 @@ class MSADataset(Dataset):
         sample['ss'] = torch.tensor(sample['ss'][crop][:, crop]).unsqueeze(-1)
         if self.stru_feat_type != 'SS':
             # L x L x 1
-            LM_feat = self.get_LM_feat(seq, pid).unsqueeze(-1)
+            LM_feat = self.get_matrix_feature(seq, pid, crop).unsqueeze(-1)
             if self.stru_feat_type == 'LM':
                 sample['ss'] = LM_feat
             elif self.stru_feat_type == 'both':
@@ -270,19 +275,10 @@ class MSADataset(Dataset):
         else:
             raise Exception(f'Not implemented: use SPOTRNA instead: {pid}')
 
-
-    def get_LM_feat(self, seq, name='', use_cache=False):
-        if use_cache:
-            if seq not in self.LM_feat_cache:
-                self.LM_feat_cache[seq] = self.get_matrix_feature(seq, name)
-            return self.LM_feat_cache[seq]
-        else:
-            return self.get_matrix_feature(seq, name)
-
-    def get_matrix_feature(self, seq, name):
+    def get_matrix_feature(self, seq, name, crop=None):
         if self.LM_name == 'structRFM':
+            feat_dic = self.LM.extract_feature(seq, is_training=not self.freeze_LM)
             if self.use_attn_feat:
-                feat_dic = self.LM.extract_feature(seq, is_training=not self.freeze_LM)
                 return feat_dic['last_mean_attn_feat']
             else:
                 if self.use_outer_product_mean:
@@ -292,9 +288,14 @@ class MSADataset(Dataset):
                 else:
                     return feat_dic['mat_feat']
         elif self.LM_name.lower().startswith('rinalmo'):
-            raise NotImplementedError
+            input_ids = torch.tensor(self.rinalmo_tokenizer(seq)['input_ids']).to(self.device).unsqueeze(0)
+            output = self.LM(input_ids)
+            feat = output.last_hidden_state[0, 1:-1, :]
+            return feat @ feat.transpose(-1, -2)
         elif self.LM_name == 'evo2':
             feat = torch.from_numpy(self.evo2_embedding_dic[name][0])
+            if crop is not None:
+                feat = feat[crop, :]
             return feat @ feat.transpose(-1, -2)
 
 

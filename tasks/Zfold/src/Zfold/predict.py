@@ -40,33 +40,54 @@ parser.add_argument('-gpu', '--gpu', type=str, default='-1', help='use which gpu
 parser.add_argument('--stru_feat_type', default='SS', choices=['SS', 'LM', 'both'])
 parser.add_argument('--use_outer_product_mean', action='store_true')
 parser.add_argument('-cpu', '--cpu', type=int, default=2, help='number of CPUs to use')
+parser.add_argument('--evo2_embedding_path', type=str, default='../../../../evo2_embeddings/TSP_train.npz')
+parser.add_argument('--LM_name', type=str, default='structRFM')
 args = parser.parse_args()
 
+LM_name = args.LM_name
+if LM_name == 'evo2':
+    EVO2_EMBEDDING_DIC = np.load(args.evo2_embedding_path)
+elif LM_name.lower().startswith('rinalmo'):
+    RINALMO_TOKENIZER = RnaTokenizer.from_pretrained(f"multimolecule/{LM_name.lower()}")
 
-def get_matrix_feature(LM_embed, use_outer_product_mean=False):
-    if use_outer_product_mean:
-        shape = LM_embed.shape
-        return (LM_embed.unsqueeze(-3).unsqueeze(-2) * LM_embed.unsqueeze(-2).unsqueeze(-1)).reshape(*shape[:-1], shape[-2], -1).mean(dim=-1)
-    else:
-        return LM_embed @ LM_embed.transpose(1, 0)
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+torch.set_num_threads(args.cpu)
+device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
 
-def get_stru_feat(LM, seq, ss_, stru_feat_type, use_outer_product_mean=False):
+def get_matrix_feature(LM, name, seq, sel=None, use_outer_product_mean=False):
+    if LM_name == 'structRFM':
+        feat_dic = LM.extract_feature(seq)
+        if use_outer_product_mean:
+            LM_embed = feat_dic['seq_feat']
+            shape = LM_embed.shape
+            return (LM_embed.unsqueeze(-3).unsqueeze(-2) * LM_embed.unsqueeze(-2).unsqueeze(-1)).reshape(*shape[:-1], shape[-2], -1).mean(dim=-1)
+        else:
+            return feat_dic['mat_feat']
+    elif LM_name.lower().startswith('rinalmo'):
+        input_ids = torch.tensor(RINALMO_TOKENIZER(seq)['input_ids']).to(device).unsqueeze(0)
+        output = LM(input_ids)
+        feat = output.last_hidden_state[0, 1:-1, :]
+        return feat @ feat.transpose(-1, -2)
+    elif LM_name == 'evo2':
+        feat = torch.from_numpy(EVO2_EMBEDDING_DIC[name][0])
+        if sel is not None:
+            feat = feat[sel, :]
+        return feat @ feat.transpose(-1, -2)
+
+
+def get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel, use_outer_product_mean=False):
     '''
         seq and ss are cropped
     '''
     if stru_feat_type != 'SS':
-        feat = LM.extract_raw_feature(seq, return_all=False)[1:-1, :]
-        feat2d = get_matrix_feature(feat, use_outer_product_mean)
-        LM_feat = feat2d.unsqueeze(-1)
-        if stru_feat_type == 'LM':
-            ss_ = LM_feat
-        elif stru_feat_type == 'both':
-            ss_ = torch.cat([ss_, LM_feat], dim=-1)
-    return ss_
+        LM_feat = get_matrix_feature(LM, fname, seq, sel, use_outer_product_mean=use_outer_product_mean).unsqueeze(-1)
+        if stru_feat_type == 'both':
+            LM_feat = torch.cat([ss_, LM_feat], dim=-1)
+    return LM_feat
 
 
-def predict(model, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=None, use_outer_product_mean=False):
+def predict(model, fname, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=None, use_outer_product_mean=False):
     if ss_.shape[0] != msa.shape[-1]:
         raise ValueError(f'ss length {ss_.shape[0]}, msa length {msa.shape[1]}!')
     with torch.no_grad():
@@ -104,7 +125,7 @@ def predict(model, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=
                     input_msa = msa_feat[:, sel]
                     input_ss = ss_[sel, :, :][:, sel, :]
                     crop_seq = ''.join([ch for ch, flag in zip(seq,sel) if flag])
-                    input_ss = get_stru_feat(LM, crop_seq, input_ss, stru_feat_type, use_outer_product_mean)
+                    input_ss = get_stru_feat(LM, fname, crop_seq, input_ss, stru_feat_type, sel=sel, use_outer_product_mean=use_outer_product_mean)
                     mask = torch.sum(input_msa == 4, dim=-1) < .7 * sel.sum()  # remove too gappy sequences
 
                     input_msa = input_msa[mask]
@@ -135,7 +156,7 @@ def predict(model, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=
                         else:
                             pred_dict[k][a] /= count_2d
         else:
-            input_ss = get_stru_feat(LM, seq, ss_, stru_feat_type, use_outer_product_mean=use_outer_product_mean)
+            input_ss = get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel=sel, use_outer_product_mean=use_outer_product_mean)
             pred_dict = model(msa_feat.unsqueeze(0), input_ss.unsqueeze(0), res_id=res_id.to(device), msa_cutoff=args.nrows)['geoms']
 
     for l in pred_dict:
@@ -150,13 +171,8 @@ def predict(model, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
-    torch.set_num_threads(args.cpu)
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     py = sys.executable
 
-    LM_path = os.path.join(args.para_dir, args.LM_para_name)
-    LM = structRFM_infer(from_pretrained=LM_path, max_length=514, device=device)
     out_dir = os.path.dirname(os.path.abspath(args.npz))
     os.makedirs(out_dir, exist_ok=True)
 
@@ -211,10 +227,18 @@ if __name__ == '__main__':
 
     model_ckpt = torch.load(Zfold_checkpoint, map_location=device)
     model.load_state_dict(model_ckpt['state_dict'])
-    if args.stru_feat_type!='SS' and 'freeze' not in args.Zfold_para_name:
-        LM.model.load_state_dict(model_ckpt['LM_state_dict'])
+
+    if args.LM_name == 'structRFM':
+        LM_path = os.path.join(args.para_dir, args.LM_para_name)
+        LM = structRFM_infer(from_pretrained=LM_path, max_length=514, device=device)
+        if args.stru_feat_type!='SS' and 'freeze' not in args.Zfold_para_name:
+            LM.model.load_state_dict(model_ckpt['LM_state_dict'])
+    elif args.LM_name.lower().startswith('rinalmo'):
+        LM = RiNALMoModel.from_pretrained(f"multimolecule/{args.LM_name.lower()}").to(device)
+    elif args.LM_name == 'evo2':
+        LM = None
     model.eval()
-    pred = predict(model, seq, msa, ss, window=args.window, LM=LM, stru_feat_type=args.stru_feat_type, use_outer_product_mean=args.use_outer_product_mean)
+    pred = predict(model, fname, seq, msa, ss, window=args.window, LM=LM, stru_feat_type=args.stru_feat_type, use_outer_product_mean=args.use_outer_product_mean)
 
     for k, v in pred.items():
         if isinstance(v, dict):

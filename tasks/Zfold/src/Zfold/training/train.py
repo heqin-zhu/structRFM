@@ -19,7 +19,11 @@ from dataset import MSADataset
 from network.RNAformer import DistPredictor
 from utils_training import *
 
-from structRFM.infer import structRFM_infer
+from multimolecule import RiNALMoModel
+
+import sys
+sys.path.append('/data/heqinzhu/gitrepo/structRFM')
+from src.structRFM.infer import structRFM_infer
 
 parser = ArgumentParser(description='Training of trRosettaRNA', add_help=False,
                         formatter_class=RawTextHelpFormatter)
@@ -42,7 +46,7 @@ group.add_argument('--LM_path',
                    default=os.getenv('structRFM_checkpoint'),
                   )
 group.add_argument('--LM_name', type=str, default='structRFM')
-group.add_argument('--evo2_embedding_path', type=str, default='/public2/home/heqinzhu/gitrepo/LLM/structRFM/evo2_embeddings/TSP_train.npz')
+group.add_argument('--evo2_embedding_path', type=str, default='../../../../../evo2_embeddings/TSP_train.npz')
 group.add_argument('--msa_cutoff', type=int, default=200)
 group.add_argument('--milestones', nargs='+', help='milestone epochs for lr changing', default=[10, 15, 18, 20, 25])
 group.add_argument('-init_lr', '--init_lr',
@@ -180,7 +184,7 @@ if __name__ == '__main__':
     if args.LM_name == 'structRFM':
         LM = structRFM_infer(from_pretrained=args.LM_path, max_length=514, device=device)
     elif args.LM_name.lower().startswith('rinalmo'):
-        raise NotImplementedError
+        LM = RiNALMoModel.from_pretrained(f"multimolecule/{args.LM_name.lower()}").to(device)
     elif args.LM_name == 'evo2':
         LM = None
 
@@ -206,10 +210,15 @@ if __name__ == '__main__':
         paras_list = [
                   dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
                  ]
-    else:
+    elif args.LM_name == 'structRFM':
         paras_list = [
                   dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
                   dict(params=[para for para in LM.model.parameters() if para.requires_grad], lr=args.init_lr/2),
+                 ]
+    else:
+        paras_list = [
+                  dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
+                  dict(params=[para for para in LM.parameters() if para.requires_grad], lr=args.init_lr/2),
                  ]
     optimizer = torch.optim.Adam(paras_list)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(i) for i in args.milestones], gamma=.5, last_epoch=-1)
@@ -230,7 +239,10 @@ if __name__ == '__main__':
         print_and_save(log_file, log_info)
         # save checkpoint each epoch
         cur_corr = np.mean(val_metrics['dist_corr'])
-        ckpt_dict = {'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'LM_state_dict': LM.model.state_dict()}
+        if args.LM_name == 'evo2':
+            ckpt_dict = {'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}
+        else:
+            ckpt_dict = {'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'LM_state_dict': LM.model.state_dict()}
         flag = f'ep{epoch:03d}_distcorr{cur_corr:.4f}'
         torch.save(ckpt_dict, f'{checkpoint_dir}/model_{flag}.pth')
         device_dict = dict((ind, int(str(optimizer.state_dict()['state'][ind]['exp_avg'].device)[-1])) for ind in optimizer.state_dict()['state'])
