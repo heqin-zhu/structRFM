@@ -241,8 +241,10 @@ if __name__ == '__main__':
         cur_corr = np.mean(val_metrics['dist_corr'])
         if args.LM_name == 'evo2':
             ckpt_dict = {'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}
-        else:
+        elif args.LM_name == 'structRFM':
             ckpt_dict = {'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'LM_state_dict': LM.model.state_dict()}
+        else:
+            ckpt_dict = {'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'LM_state_dict': LM.state_dict()}
         flag = f'ep{epoch:03d}_distcorr{cur_corr:.4f}'
         torch.save(ckpt_dict, f'{checkpoint_dir}/model_{flag}.pth')
         device_dict = dict((ind, int(str(optimizer.state_dict()['state'][ind]['exp_avg'].device)[-1])) for ind in optimizer.state_dict()['state'])

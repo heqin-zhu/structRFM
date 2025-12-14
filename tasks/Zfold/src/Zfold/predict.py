@@ -20,6 +20,8 @@ from util.misc import parse_a3m, ss2mat, parse_ct
 from network.RNAformer import DistPredictor
 from network.config import n_bins, obj
 
+from multimolecule import RnaTokenizer, RiNALMoModel
+
 from structRFM.infer import structRFM_infer
 from BPfold.util.RNA_kit import read_fasta
 
@@ -156,7 +158,7 @@ def predict(model, fname, seq, msa, ss_, window=100, shift=50, stru_feat_type='S
                         else:
                             pred_dict[k][a] /= count_2d
         else:
-            input_ss = get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel=sel, use_outer_product_mean=use_outer_product_mean)
+            input_ss = get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel=None, use_outer_product_mean=use_outer_product_mean)
             pred_dict = model(msa_feat.unsqueeze(0), input_ss.unsqueeze(0), res_id=res_id.to(device), msa_cutoff=args.nrows)['geoms']
 
     for l in pred_dict:
@@ -180,7 +182,7 @@ if __name__ == '__main__':
     msa = parse_a3m(args.msa, limit=20000)
     name, seq = list(read_fasta(args.msa))[0]
 
-    fname = os.path.basename(args.npz)
+    fname = os.path.basename(args.msa)
     fname = fname[:fname.rfind('.')]
     if args.ss_file is None:
         # predict SS by SPOT-RNA
@@ -228,13 +230,14 @@ if __name__ == '__main__':
     model_ckpt = torch.load(Zfold_checkpoint, map_location=device)
     model.load_state_dict(model_ckpt['state_dict'])
 
+    LM_path = os.path.join(args.para_dir, args.LM_para_name)
     if args.LM_name == 'structRFM':
-        LM_path = os.path.join(args.para_dir, args.LM_para_name)
         LM = structRFM_infer(from_pretrained=LM_path, max_length=514, device=device)
         if args.stru_feat_type!='SS' and 'freeze' not in args.Zfold_para_name:
             LM.model.load_state_dict(model_ckpt['LM_state_dict'])
     elif args.LM_name.lower().startswith('rinalmo'):
         LM = RiNALMoModel.from_pretrained(f"multimolecule/{args.LM_name.lower()}").to(device)
+        LM.load_state_dict(model_ckpt['LM_state_dict'])
     elif args.LM_name == 'evo2':
         LM = None
     model.eval()
