@@ -68,7 +68,7 @@ class SeqClsCollator(BaseCollator):
         return {
             "input_ids": torch.from_numpy(self.stack_fn(input_ids_stack)),
             "labels": torch.from_numpy(self.stack_fn(labels_stack)),
-            'name': name_b,
+            'names': name_b,
             'seq': seq_b,
                }
 

@@ -13,21 +13,15 @@ from losses import SeqClsLoss
 from metrics import SeqClsMetrics
 from trainers import SeqClsTrainer
 from tokenizer import RNATokenizer
-from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls, RiNALMoForSeqCls
+from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls, RiNALMoForSeqCls, Evo2ForSeqCls
 
 from structRFM.model import get_structRFM_for_cls, get_model_scale
 from structRFM.data import get_mlm_tokenizer
 
 from multimolecule import RnaTokenizer, RiNALMoModel
 
-# ========== Define constants
-MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', ]
-MAX_SEQ_LEN = {"RNABERT": 440,
-               "RNAMSM": 512,
-               "RNAFM": 512,
-               "structRFM": 512,
-              }
 
+from run_ss_pred import MAX_SEQ_LEN, EMBED_DIMS, MODELS
 TASKS = ["nRC", "lncRNA_H", "lncRNA_M", 'IRES', 'lncRNA_H_uni']
 LABEL2ID = {
     "nRC": {
@@ -129,6 +123,10 @@ if __name__ == "__main__":
 
     # ========== Build tokenizer, model, criterion
 
+    dataset_classes = LABEL2ID[args.dataset]
+    num_classes = len(dataset_classes)
+    embed_dim = EMBED_DIMS[args.model_name]
+
     if args.model_name == "RNABERT":
         tokenizer = RNATokenizer(args.vocab_path + "{}.txt".format(args.model_name))
         from RNABERT.rnabert import BertModel
@@ -137,7 +135,7 @@ if __name__ == "__main__":
         model = BertModel(model_config)
         if args.freeze_base:
             freeze(model)
-        model = RNABertForSeqCls(model)
+        model = RNABertForSeqCls(model, num_classes, embed_dim)
         model._load_pretrained_bert(args.LM_path)
     elif args.model_name == "RNAMSM":
         tokenizer = RNATokenizer(args.vocab_path + "{}.txt".format(args.model_name))
@@ -147,7 +145,7 @@ if __name__ == "__main__":
         model = MSATransformer(**model_config)
         if args.freeze_base:
             freeze(model)
-        model = RNAMsmForSeqCls(model)
+        model = RNAMsmForSeqCls(model, num_classes, embed_dim)
         model._load_pretrained_bert(args.LM_path)
     elif args.model_name == "RNAFM":
         tokenizer = RNATokenizer(args.vocab_path + "{}.txt".format(args.model_name))
@@ -155,22 +153,25 @@ if __name__ == "__main__":
         model, alphabet = fm.pretrained.rna_fm_t12()
         if args.freeze_base:
             freeze(model)
-        model = RNAFmForSeqCls(model)
+        model = RNAFmForSeqCls(model, num_classes, embed_dim)
     elif args.model_name.lower().startswith('rinalmo'):
         tokenizer = RnaTokenizer.from_pretrained(f"multimolecule/{args.model_name.lower()}")
         pretrained_model = RiNALMoModel.from_pretrained(f"multimolecule/{args.model_name.lower()}")
         if args.freeze_base:
             freeze(pretrained_model)
-        model = RiNALMoForSeqCls(pretrained_model)
+        model = RiNALMoForSeqCls(pretrained_model, num_classes, embed_dim)
+    elif args.model_name.lower().startswith('evo2'):
+        tokenizer = RNATokenizer(args.vocab_path + "RNAFM.txt".format(args.model_name))
+        model = Evo2ForSeqCls(num_classes, embed_dim)
     elif args.model_name == "structRFM":
         from_pretrained = args.LM_path
         model_paras = get_model_scale(args.model_scale)
         if args.max_seq_len+2>514:
             tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
-            model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, tokenizer=tokenizer, pretrained_length=514, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
+            model = get_structRFM_for_cls(num_class=num_classes, from_pretrained=from_pretrained, tokenizer=tokenizer, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
         else:
             if args.use_automodelforseqcls:
-                model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path=from_pretrained, num_labels=len(LABEL2ID[args.dataset]))
+                model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path=from_pretrained, num_labels=num_classes)
                 if args.freeze_base:
                     freeze(model.bert.encoder)
             else:

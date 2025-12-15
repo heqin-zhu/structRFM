@@ -466,7 +466,7 @@ class RNABertForSsp(nn.Module):
     def _load_pretrained_bert(self, path):
         self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
 
-    def forward(self, input_ids):
+    def forward(self, input_ids, **kargs):
         encoded_layers, _ = self.bert(input_ids)
         embeddings = encoded_layers[-1].detach()
         return embeddings
@@ -480,7 +480,7 @@ class RNAMsmForSsp(nn.Module):
     def _load_pretrained_bert(self, path):
         self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
 
-    def forward(self, input_ids):
+    def forward(self, input_ids, **kargs):
         output = self.bert(input_ids, repr_layers=[10])
         embeddings = output["representations"][10][:, 0, ...].detach()
         return embeddings
@@ -494,7 +494,7 @@ class RNAFmForSsp(nn.Module):
     def _load_pretrained_bert(self, path):
         self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
 
-    def forward(self, input_ids):
+    def forward(self, input_ids, **kargs):
         output = self.bert(input_ids, repr_layers=[12])
         embeddings = output["representations"][12].detach()
         return embeddings
@@ -506,7 +506,7 @@ class RiNALMoForSsp(nn.Module):
         self.bert = bert
 
 
-    def forward(self, input_ids, attention_mask=None):
+    def forward(self, input_ids, attention_mask=None, **kargs):
         output = self.bert(input_ids, output_hidden_states=True, attention_mask=attention_mask)
         embeddings = output.hidden_states[-1][:, 1:, :].detach()
         return embeddings
@@ -520,7 +520,13 @@ class structRFMForSsp(nn.Module):
     def _load_pretrained_bert(self, path):
         self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
 
-    def forward(self, input_ids, attention_mask=None):
+    def forward(self, input_ids, attention_mask=None, **kargs):
         outputs = self.bert(input_ids, attention_mask=attention_mask)
         embeddings = outputs.hidden_states[-1].detach()
         return embeddings
+
+
+class Evo2ForSsp(nn.Module):
+    def __init__(self, bert):
+        super(Evo2ForSsp, self).__init__()
+        raise NotImplementedError

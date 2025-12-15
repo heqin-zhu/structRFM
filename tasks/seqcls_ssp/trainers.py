@@ -23,7 +23,7 @@ class SeqClsTrainer(BaseTrainer):
                 input_ids = data["input_ids"].to(self.args.device)
                 labels = data["labels"].to(self.args.device)
 
-                outputs = self.model(input_ids)
+                outputs = self.model(input_ids, names=data['names'])
                 logits = outputs.logits if hasattr(outputs, 'logits') else outputs
                 loss = self.loss_fn(logits, labels)
 
@@ -58,13 +58,13 @@ class SeqClsTrainer(BaseTrainer):
                 labels = data["labels"].to(self.args.device)
 
                 with torch.no_grad():
-                    outputs = self.model(input_ids)
+                    outputs = self.model(input_ids, names=data['names'])
                     logits = outputs.logits if hasattr(outputs, 'logits') else outputs
 
                 num_total += self.args.batch_size
                 outputs_dataset.append(logits)
                 labels_dataset.append(labels)
-                outputs_names += data['name']
+                outputs_names += data['names']
                 outputs_seqs += data['seq']
 
                 if num_total >= self.args.logging_steps:
@@ -234,7 +234,7 @@ class SspTrainer(BaseTrainer):
 
                 if instance["input_ids"].shape[0] < 600:
                     with torch.no_grad():
-                        embeddings = self.pretrained_model(input_tensor)
+                        embeddings = self.pretrained_model(input_tensor, names=headers)
                     self.optimizer.zero_grad()
                     loss = self.loss_fn(
                         self.model, seqs, refs, embeddings, fname=headers)
@@ -277,7 +277,7 @@ class SspTrainer(BaseTrainer):
                 if instance["input_ids"].shape[0] < 600:
 
                     with torch.no_grad():
-                        embeddings = self.pretrained_model(input_tensor)
+                        embeddings = self.pretrained_model(input_tensor, names=headers)
                     scs, preds, bps = self.model(seqs, embeddings)
                     for header, seq, ref, sc, pred, bp in zip(headers, seqs, refs, scs, preds, bps):
                         x = compare_bpseq(ref, bp)

@@ -39,10 +39,13 @@ class BaseTrainer(object):
                  loss_fn=None,
                  optimizer=None,
                  compute_metrics=None,
-                 visual_writer=None):
+                 visual_writer=None,
+                 LM_name='structRFM',
+                ):
         self.args = args
         self.tokenizer = tokenizer
         self.model = model
+        self.LM_name = LM_name
         self.pretrained_model = pretrained_model
         self.indicator = indicator
         self.ensemble = ensemble

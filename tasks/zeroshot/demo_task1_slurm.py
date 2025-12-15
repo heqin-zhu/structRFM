@@ -37,30 +37,16 @@ def apc_postprocess(pred_matrix, thresh):
     return pred_matrix
 
 
-def cal_metric(pred_matrix, gt_connects, seq, thresh, postprocess_wo_thresh=False):
+def process_and_cal_metric(pred_matrix, gt_connects, seq, thresh, postprocess_wo_thresh=False):
     if postprocess_wo_thresh:
         pred_matrix = post_process_heatmap(seq, pred_matrix) # my postprocess, use their
     else:
         pred_matrix = apc_postprocess(pred_matrix, thresh)
-
-    # cal metric  ## TODO, use their metric func
-    pred_connects = mat2connects(pred_matrix) # convert matrix to connects (list of pairs)
-    
-    mcc, inf, f1, p, r = cal_metric_pairwise(pred_connects, gt_connects)
-   
-    assert f1 >= 0.0 and f1 <= 1.0, f"Unexpected F1: {f1}"
-
+    gt_mat = connects2mat(gt_connects)
     # print dbn
     # print('gt  ', connects2dbn(gt_connects))
     # print('pred', connects2dbn(pred_connects))
-    
-    return {
-            'MCC': mcc, 
-            'INF': inf, 
-            'F1': f1, 
-            'P': p, 
-            'R': r
-           }
+    return cal_metric(pred_matrix, gt_mat)
     
 
 def list_depth(lst):
@@ -118,7 +104,7 @@ def val_layer_head(model, dest, result_dir_name, val_path, layer, head, postproc
     cur_dest = os.path.join(dest, result_dir_name)
     os.makedirs(cur_dest, exist_ok=True)
 
-    thresh_name_F1 = [{} for i in range(num_thresh)]
+    thresh_name_INF = [{} for i in range(num_thresh)]
     for i, (name, seq, gt_connects, _) in enumerate(tqdm.tqdm(val_data)):
         if gt_pair_mode=='non-canonical':
             _, gt_connects = dispart_nc_pairs(seq, gt_connects)
@@ -127,19 +113,19 @@ def val_layer_head(model, dest, result_dir_name, val_path, layer, head, postproc
         attentions = get_attentions(model, dest, seq, name, max_length=max_length)
         matrix = attentions[layer][0, head]
         for thresh_idx, thresh in enumerate(thresh_values):
-            f1 = cal_metric(matrix.cpu(), gt_connects, seq, thresh, postprocess_wo_thresh)['F1']
-            thresh_name_F1[thresh_idx][name] = f1
+            INF = process_and_cal_metric(matrix.cpu(), gt_connects, seq, thresh, postprocess_wo_thresh)['INF']
+            thresh_name_INF[thresh_idx][name] = INF
             if postprocess_wo_thresh:
                 break
    
-    thresh_avgF1 = {i: np.mean(list(dic.values())) for i, dic in enumerate(thresh_name_F1)}
-    best_idx = max(thresh_avgF1, key=lambda i: thresh_avgF1[i])
+    thresh_avgINF = {i: np.mean(list(dic.values())) for i, dic in enumerate(thresh_name_INF)}
+    best_idx = max(thresh_avgINF, key=lambda i: thresh_avgINF[i])
     best_th = thresh_values[best_idx]
-    best_F1 = thresh_avgF1[best_idx]
+    best_INF = thresh_avgINF[best_idx]
 
-    save_name = f'layer{layer:02d}_head{head:02d}_th{best_th:.3f}_F1score{best_F1:.4f}.json'
+    save_name = f'layer{layer:02d}_head{head:02d}_th{best_th:.3f}_INF{best_INF:.4f}.json'
     with open(os.path.join(cur_dest, save_name), 'w') as fp:
-        json.dump(thresh_name_F1, fp)
+        json.dump(thresh_name_INF, fp)
 
 
 def val_layer_outputs(model, dest, result_dir_name, val_path, layer, postprocess_wo_thresh=False, gt_pair_mode='all', max_length=514):
@@ -147,7 +133,7 @@ def val_layer_outputs(model, dest, result_dir_name, val_path, layer, postprocess
     cur_dest = os.path.join(dest, result_dir_name)
     os.makedirs(cur_dest, exist_ok=True)
 
-    thresh_name_F1 = [{} for i in range(num_thresh)]
+    thresh_name_INF = [{} for i in range(num_thresh)]
     for i, (name, seq, gt_connects, _) in enumerate(tqdm.tqdm(val_data)):
         if gt_pair_mode=='non-canonical':
             _, gt_connects = dispart_nc_pairs(seq, gt_connects)
@@ -157,19 +143,19 @@ def val_layer_outputs(model, dest, result_dir_name, val_path, layer, postprocess
         feat = layer_outputs[layer]
         matrix = feat @ feat.transpose(-1, -2)
         for thresh_idx, thresh in enumerate(thresh_values):
-            f1 = cal_metric(matrix.cpu(), gt_connects, seq, thresh, postprocess_wo_thresh)['F1']
-            thresh_name_F1[thresh_idx][name] = f1
+            INF = process_and_cal_metric(matrix.cpu(), gt_connects, seq, thresh, postprocess_wo_thresh)['INF']
+            thresh_name_INF[thresh_idx][name] = INF
             if postprocess_wo_thresh:
                 break
    
-    thresh_avgF1 = {i: np.mean(list(dic.values())) for i, dic in enumerate(thresh_name_F1)}
-    best_idx = max(thresh_avgF1, key=lambda i: thresh_avgF1[i])
+    thresh_avgINF = {i: np.mean(list(dic.values())) for i, dic in enumerate(thresh_name_INF)}
+    best_idx = max(thresh_avgINF, key=lambda i: thresh_avgINF[i])
     best_th = thresh_values[best_idx]
-    best_F1 = thresh_avgF1[best_idx]
+    best_INF = thresh_avgINF[best_idx]
 
-    save_name = f'layer{layer:02d}_th{best_th:.3f}_F1score{best_F1:.4f}.json'
+    save_name = f'layer{layer:02d}_th{best_th:.3f}_INF{best_INF:.4f}.json'
     with open(os.path.join(cur_dest, save_name), 'w') as fp:
-        json.dump(thresh_name_F1, fp)
+        json.dump(thresh_name_INF, fp)
 
 
 def cal_test_metric(model, dest, val_dir, test_path, postprocess_wo_thresh=False, max_length=514):
@@ -181,7 +167,7 @@ def cal_test_metric(model, dest, val_dir, test_path, postprocess_wo_thresh=False
     val_dir = os.path.join(dest, val_dir)
     layer_head_thresh = {}
     for f in os.listdir(val_dir):
-        layer_s, head_s, th_s, F1_s = f[:f.rfind('.')].split('_')
+        layer_s, head_s, th_s, INF_s = f[:f.rfind('.')].split('_')
         layer = int(layer_s[len('layer'):])
         head = int(head_s[len('head'):])
         th = float(th_s[len('th'):])
@@ -197,30 +183,30 @@ def cal_test_metric(model, dest, val_dir, test_path, postprocess_wo_thresh=False
             for head in range(num_heads):
                 matrix = attentions[layer][0, head]
                 thresh = layer_head_thresh[(layer, head)]
-                m_dic = cal_metric(matrix.cpu(), gt_connects, seq, thresh, postprocess_wo_thresh)
-                f1 = m_dic['F1']
+                m_dic = process_and_cal_metric(matrix.cpu(), gt_connects, seq, thresh, postprocess_wo_thresh)
+                INF = m_dic['INF']
                 mcc = m_dic['MCC']
 
                 df_data.append({
                                 'layer': layer,
                                 'head': head,
                                 'name': name,
-                               'F1': f1, 
+                               'INF': INF, 
                                'MCC': mcc,
                                'thresh': thresh,
                           })
-                if name not in json_data or json_data[name]['F1']<f1:
+                if name not in json_data or json_data[name]['INF']<INF:
                     json_data[name] = {
-                                       'F1': f1, 
+                                       'INF': INF, 
                                        'MCC': mcc,
                                        'thresh': thresh,
                                       }
    
     pd.DataFrame(df_data).to_csv(os.path.join(dest, test_name+'.csv'), index=False)
 
-    avg_F1 = np.mean([d['F1'] for d in json_data.values()])
+    avg_INF = np.mean([d['INF'] for d in json_data.values()])
 
-    save_name = f'{test_name}_F1score{avg_F1:.4f}.json'
+    save_name = f'{test_name}_INF{avg_INF:.4f}.json'
     with open(os.path.join(dest, save_name), 'w') as fp:
         json.dump(json_data, fp)
 

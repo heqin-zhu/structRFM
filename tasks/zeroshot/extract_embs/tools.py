@@ -72,7 +72,7 @@ def cosine_similarity(x1, x2):
 ## calcualute the cosine similarity between two sets of embeddings 
 def emb_archiveII_cos_sim_cal(features_pkl, 
                     save_path, model_name,
-                    n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False):
+                    n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False, ylim=None, yticks=None):
     with open(features_pkl, 'rb') as fr:
         dataset = pickle.load(fr)
 
@@ -139,7 +139,12 @@ def emb_archiveII_cos_sim_cal(features_pkl,
         ax.set_ylabel('')
         if xlim is not None:
             ax.set_xlim(xlim)
-        ax.set_yticks([])
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        if yticks is not None:
+            ax.set_yticks(yticks)
+        else:
+            ax.set_yticks([])
 
         if xticks is not None:
             ax.set_xticks(xticks)
@@ -190,7 +195,7 @@ def emb_archiveII_cos_sim_cal(features_pkl,
 
         # plot title
         pre_name = pre_name + '_title'
-        plt.title(model_name_mapping[model_name])
+        plt.title(model_name_mapping.get(model_name, model_name))
         for fmt in formats:
             plt.savefig(os.path.join(save_path, pre_name + fmt), transparent=True, dpi=600, bbox_inches='tight')
 
@@ -207,7 +212,7 @@ def emb_archiveII_cos_sim_cal(features_pkl,
 
 def emb_rfam_cos_sim_cal(features_pkl, 
                          save_path, model_name,
-                         n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False):
+                         n_samples=100000, plot=True, xlim=None, xticks=None, gauss_kde=False, ylim=None, yticks=None):
     with open(features_pkl, 'rb') as fr:
         dataset = pickle.load(fr)
 
@@ -271,7 +276,12 @@ def emb_rfam_cos_sim_cal(features_pkl,
         ax.set_ylabel('')
         if xlim is not None:
             ax.set_xlim(xlim)
-        ax.set_yticks([])
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        if yticks is not None:
+            ax.set_yticks(yticks)
+        else:
+            ax.set_yticks([])
 
         if xticks is not None:
             ax.set_xticks(xticks)
@@ -322,7 +332,7 @@ def emb_rfam_cos_sim_cal(features_pkl,
 
         # plot title
         pre_name = pre_name + '_title'
-        plt.title(model_name_mapping[model_name])
+        plt.title(model_name_mapping.get(model_name, model_name))
         for fmt in formats:
             plt.savefig(os.path.join(save_path, pre_name + fmt), transparent=True, dpi=600, bbox_inches='tight')
 
