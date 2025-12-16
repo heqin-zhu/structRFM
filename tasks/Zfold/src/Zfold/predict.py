@@ -20,7 +20,6 @@ from util.misc import parse_a3m, ss2mat, parse_ct
 from network.RNAformer import DistPredictor
 from network.config import n_bins, obj
 
-from multimolecule import RnaTokenizer, RiNALMoModel
 
 from structRFM.infer import structRFM_infer
 from BPfold.util.RNA_kit import read_fasta
@@ -42,14 +41,18 @@ parser.add_argument('-gpu', '--gpu', type=str, default='0', help='use which gpu'
 parser.add_argument('--stru_feat_type', default='SS', choices=['SS', 'LM', 'both'])
 parser.add_argument('--use_outer_product_mean', action='store_true')
 parser.add_argument('-cpu', '--cpu', type=int, default=2, help='number of CPUs to use')
-parser.add_argument('--evo2_embedding_path', type=str, default='../../../../evo2_embeddings/TSP_train.npz')
+parser.add_argument('--evo2_embedding_dir', type=str)
 parser.add_argument('--LM_name', type=str, default='structRFM')
 args = parser.parse_args()
 
 LM_name = args.LM_name
 if LM_name == 'evo2':
-    EVO2_EMBEDDING_DIC = np.load(args.evo2_embedding_path)
+    EVO2_EMBEDDING_DIC = {}
+    for f in os.listdir(args.evo2_embedding_dir):
+        if f.startswith('TSP') and f.endswith('.npz'):
+            EVO2_EMBEDDING_DIC.update(np.load(os.path.join(args.evo2_embedding_dir, f)))
 elif LM_name.lower().startswith('rinalmo'):
+    from multimolecule import RnaTokenizer
     RINALMO_TOKENIZER = RnaTokenizer.from_pretrained(f"multimolecule/{LM_name.lower()}")
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -72,7 +75,7 @@ def get_matrix_feature(LM, name, seq, sel=None, use_outer_product_mean=False):
         feat = output.last_hidden_state[0, 1:-1, :]
         return feat @ feat.transpose(-1, -2)
     elif LM_name == 'evo2':
-        feat = torch.from_numpy(EVO2_EMBEDDING_DIC[name][0])
+        feat = torch.from_numpy(EVO2_EMBEDDING_DIC[name][0]).to(device)
         if sel is not None:
             feat = feat[sel, :]
         return feat @ feat.transpose(-1, -2)
@@ -236,10 +239,13 @@ if __name__ == '__main__':
         if args.stru_feat_type!='SS' and 'freeze' not in args.Zfold_para_name:
             LM.model.load_state_dict(model_ckpt['LM_state_dict'])
     elif args.LM_name.lower().startswith('rinalmo'):
+        from multimolecule import RiNALMoModel
         LM = RiNALMoModel.from_pretrained(f"multimolecule/{args.LM_name.lower()}").to(device)
         LM.load_state_dict(model_ckpt['LM_state_dict'])
     elif args.LM_name == 'evo2':
         LM = None
+    else:
+        raise Exception(f'Unknown LM: {args.LM_name}')
     model.eval()
     pred = predict(model, fname, seq, msa, ss, window=args.window, LM=LM, stru_feat_type=args.stru_feat_type, use_outer_product_mean=args.use_outer_product_mean)
 

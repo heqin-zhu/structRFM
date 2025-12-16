@@ -386,12 +386,6 @@ def stereochemical(pdb_path):
     return 
 
 
-def entanglement():
-    # RNA 3D structure entanglement
-    # - https://www.cs.put.poznan.pl/mantczak/spider.zip
-    raise NotImplementedError
-
-
 def knot_artifact(pdb_path, ntrials=200):
     '''
     # 3. Knotted artifacts in predicted 3D RNA structures
@@ -403,6 +397,13 @@ def knot_artifact(pdb_path, ntrials=200):
     coords = topoly.read_xyz(pdb_path, atoms=["P","O5'","C5'","C4'","C3'","O3'"])
     result = alexander(coords, ntrials=ntrials) # random 闭合, compute Alexander polynomial
     return result ## <50%: unknot, if knot, output knot type, such as "3_1" for trefoil knot
+
+
+
+def entanglement():
+    # RNA 3D structure entanglement
+    # https://www.cs.put.poznan.pl/mantczak/spider.zip
+    raise NotImplementedError
 
 
 ## #2

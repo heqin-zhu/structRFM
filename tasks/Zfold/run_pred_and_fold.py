@@ -27,6 +27,7 @@ if __name__ == '__main__':
     selected_dataset = ['CASP15_RNAs', '20_RNA_Puzzles']
 
     LM_para_name = 'structRFM_checkpoint'
+    LM_para_name = 'structRFM'
     Zfold_para_names = [
                         'Zfold_checkpoint',
                        ]
@@ -65,6 +66,7 @@ if __name__ == '__main__':
                                            LM_para_name=LM_para_name, 
                                            Zfold_para_name=Zfold_para_name,
                                            stru_feat_type=stru_feat_type,
+                                           LM_name=LM_name,
                                       )
             else:
                 pred_and_fold_all(
