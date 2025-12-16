@@ -113,10 +113,10 @@ if __name__ == "__main__":
     # ========== post process
     if args.max_seq_len == 0:
         args.max_seq_len = MAX_SEQ_LEN[args.model_name]
-        if args.dataset == 'lncRNA_H':
-            args.max_seq_len = 3000
-        elif args.dataset == 'lncRNA_M':
-            args.max_seq_len = 6000
+        # if args.dataset == 'lncRNA_H':
+        #     args.max_seq_len = 3000
+        # elif args.dataset == 'lncRNA_M':
+        #     args.max_seq_len = 6000
 
     # ========== args check
     assert args.replace_T ^ args.replace_U, "Only replace T or U."
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     elif args.model_name.lower().startswith('evo2'):
         tokenizer = RNATokenizer(args.vocab_path + "RNAFM.txt".format(args.model_name))
         model = Evo2ForSeqCls(num_classes, embed_dim)
-    elif args.model_name == "structRFM":
+    elif args.model_name.startswith("structRFM"):
         from_pretrained = args.LM_path
         model_paras = get_model_scale(args.model_scale)
         if args.max_seq_len+2>514:
@@ -175,7 +175,7 @@ if __name__ == "__main__":
                 if args.freeze_base:
                     freeze(model.bert.encoder)
             else:
-                model = get_structRFM_for_cls(num_class=len(LABEL2ID[args.dataset]), from_pretrained=from_pretrained, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
+                model = get_structRFM_for_cls(num_class=num_classes, from_pretrained=from_pretrained, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
             tokenizer = AutoTokenizer.from_pretrained(from_pretrained)
     else:
         raise ValueError("Unknown model name: {}".format(args.model_name))
