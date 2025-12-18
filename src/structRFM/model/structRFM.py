@@ -101,10 +101,7 @@ def get_structRFM(dim=768, layer=12, num_attention_heads=12, from_pretrained=Non
 
 
 class structRFM_for_cls(nn.Module):
-    def __init__(self, num_class, dim=768, layer=12, num_attention_heads=12, from_pretrained=None, max_length=514, tokenizer=None, use_mean_feature=False):
-        '''
-            use mean seq feature instead of cls token for classification.
-        '''
+    def __init__(self, num_class, dim=768, layer=12, num_attention_heads=12, from_pretrained=None, max_length=514, tokenizer=None, use_mean_feature=False, freeze_base=False, *args, **kargs):
         super(structRFM_for_cls, self).__init__()
         self.structRFM = get_structRFM(dim=dim, layer=layer, num_attention_heads=num_attention_heads, from_pretrained=from_pretrained, max_length=max_length, tokenizer=tokenizer, output_hidden_states=True)
         self.cls = nn.Sequential(
@@ -115,8 +112,12 @@ class structRFM_for_cls(nn.Module):
                 nn.Linear(in_features=dim, out_features=num_class),
         )
         self.use_mean_feature = use_mean_feature
+        if freeze_base:
+            for name, para in self.structRFM.named_parameters():
+                para.requires_grad = False
 
-    def forward(self, input_ids, attention_mask=None):
+
+    def forward(self, input_ids, attention_mask=None, *args, **kargs):
         outputs = self.structRFM(
             input_ids=input_ids,
             attention_mask=attention_mask
@@ -129,9 +130,46 @@ class structRFM_for_cls(nn.Module):
         return logits
 
 
-def get_structRFM_for_cls(num_class, dim=768, layer=12, num_attention_heads=12, from_pretrained=None, max_length=514, tokenizer=None, freeze_base=True, use_mean_feature=False, *args, **kargs):
-    model = structRFM_for_cls(num_class=num_class, dim=dim, layer=layer, num_attention_heads=num_attention_heads, from_pretrained=from_pretrained, max_length=max_length, tokenizer=tokenizer, use_mean_feature=use_mean_feature, *args, **kargs)
-    if freeze_base:
-        for name, para in model.structRFM.named_parameters():
-            para.requires_grad = False
-    return model
+class structRFM_for_longseq_cls(nn.Module):
+    def __init__(self, num_class, dim=768, layer=12, num_attention_heads=12, from_pretrained=None, tokenizer=None, use_mean_feature=False, window_size=512, use_overlapping_window=False, freeze_base=False, *args, **kargs):
+        super(structRFM_for_longseq_cls, self).__init__()
+        assert ((window_size-1) & window_size)==0, f'window size ({window_size}) must be the power of 2'
+        self.structRFM = get_structRFM(dim=dim, layer=layer, num_attention_heads=num_attention_heads, from_pretrained=from_pretrained, max_length=514, tokenizer=tokenizer, output_hidden_states=True)
+        self.cls = nn.Sequential(
+                nn.Linear(in_features=dim, out_features=dim),
+                nn.GELU(),
+                nn.LayerNorm(dim),
+                nn.Dropout(0.1),
+                nn.Linear(in_features=dim, out_features=num_class),
+        )
+        self.use_mean_feature = use_mean_feature
+        self.window_size = window_size
+        self.step_size = window_size//2 if use_overlapping_window else window_size
+        self.pool = nn.AdaptiveAvgPool1d(1)
+        if freeze_base:
+            for name, para in self.structRFM.named_parameters():
+                para.requires_grad = False
+
+
+    def get_cls_feat(self, outputs):
+        if self.use_mean_feature:
+            return outputs.hidden_states[-1][:, 1:-1, :].mean(dim=1)
+        else:
+            return outputs.hidden_states[-1][:, 0, :]
+
+    def forward(self, input_ids, attention_mask=None, *args, **kargs):
+        B, L = input_ids.shape
+        begin_id = input_ids[:, 0:1]
+        end_id = input_ids[:, -1:0]
+        cls_feat_list = []
+        for i in range(1, L, self.step_size):
+            i_end = min(i+self.window_size, L)
+            cur_ids = torch.cat([begin_id, input_ids[:, i:i_end], end_id], dim=1)
+            cur_mask = attention_mask
+            if cur_mask is not None:
+                cur_mask = torch.cat([cur_mask[0], cur_mask[i:i_end], cur_mask[-1]], dim=0)
+            outputs = self.structRFM(input_ids=cur_ids, attention_mask=cur_mask)
+            cls_feat_list.append(self.get_cls_feat(outputs))
+        agg_cls_feat = self.pool(torch.stack(cls_feat_list, dim=-1)).squeeze(-1)
+        logits = self.cls(agg_cls_feat)
+        return logits

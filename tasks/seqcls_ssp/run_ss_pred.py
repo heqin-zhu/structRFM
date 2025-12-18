@@ -30,7 +30,7 @@ from structRFM.data import get_mlm_tokenizer
 from multimolecule import RnaTokenizer, RiNALMoModel
 
 # ========== Define constants
-MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', 'evo2', 'structRFM-2048']
+MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'structRFM-2048', 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', 'evo2']
 TASKS = ["RNAStrAlign", "bpRNA1m"]
 MAX_SEQ_LEN = {"RNABERT": 440,
                "RNAMSM": 1024,

@@ -15,8 +15,10 @@ from trainers import SeqClsTrainer
 from tokenizer import RNATokenizer
 from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls, RiNALMoForSeqCls, Evo2ForSeqCls
 
-from structRFM.model import get_structRFM_for_cls, get_model_scale
-from structRFM.data import get_mlm_tokenizer
+import sys
+sys.path.append(os.path.abspath('../..'))
+from src.structRFM.model import structRFM_for_cls, structRFM_for_longseq_cls, get_model_scale
+from src.structRFM.data import get_mlm_tokenizer
 
 from multimolecule import RnaTokenizer, RiNALMoModel
 
@@ -75,6 +77,9 @@ def get_args():
 
     parser.add_argument('--device', type=str, help='cpu, cuda:0')
     parser.add_argument('--max_seq_len', type=int, default=0)
+    parser.add_argument('--window_size', type=int, default=512, help='muse be the power of 2')
+    parser.add_argument('--use_overlapping_window', action='store_true', help='if true, step_size = window_size//2')
+
     parser.add_argument('--dataloader_num_workers', type=int, default=0)
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--train', type=str2bool, default=True)
@@ -84,6 +89,7 @@ def get_args():
                         help='The number of samples used per step & per device.')
     parser.add_argument('--freeze_base', action='store_true', help='freeze base language model')
     parser.add_argument('--use_mean_feature', action='store_true')
+    parser.add_argument('--fast_test', action='store_true')
     parser.add_argument('--use_automodelforseqcls', action='store_true')
     parser.add_argument('--num_train_epochs', type=int, default=60,
                         help='The number of epoch for training.')
@@ -113,11 +119,6 @@ if __name__ == "__main__":
     # ========== post process
     if args.max_seq_len == 0:
         args.max_seq_len = MAX_SEQ_LEN[args.model_name]
-        # if args.dataset == 'lncRNA_H':
-        #     args.max_seq_len = 3000
-        # elif args.dataset == 'lncRNA_M':
-        #     args.max_seq_len = 6000
-
     # ========== args check
     assert args.replace_T ^ args.replace_U, "Only replace T or U."
 
@@ -168,15 +169,20 @@ if __name__ == "__main__":
         model_paras = get_model_scale(args.model_scale)
         if args.max_seq_len+2>514:
             tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
-            model = get_structRFM_for_cls(num_class=num_classes, from_pretrained=from_pretrained, tokenizer=tokenizer, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
+            model = structRFM_for_longseq_cls(num_class=num_classes, from_pretrained=from_pretrained, tokenizer=tokenizer, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, window_size=args.window_size, use_overlapping_window=args.use_overlapping_window, **model_paras)
         else:
             if args.use_automodelforseqcls:
                 model = AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path=from_pretrained, num_labels=num_classes)
                 if args.freeze_base:
                     freeze(model.bert.encoder)
             else:
-                model = get_structRFM_for_cls(num_class=num_classes, from_pretrained=from_pretrained, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
+                model = structRFM_for_cls(num_class=num_classes, from_pretrained=from_pretrained, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
             tokenizer = AutoTokenizer.from_pretrained(from_pretrained)
+    elif args.model_name.startswith("structRFM-2048"):
+        from_pretrained = args.LM_path
+        model_paras = get_model_scale(args.model_scale)
+        tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
+        model = structRFM_for_cls(num_class=num_classes, from_pretrained=from_pretrained, tokenizer=tokenizer, freeze_base=args.freeze_base, use_mean_feature=args.use_mean_feature, **model_paras)
     else:
         raise ValueError("Unknown model name: {}".format(args.model_name))
 
@@ -202,8 +208,11 @@ if __name__ == "__main__":
         
 
     # ========== Prepare data
-    dataset_train = SeqClsDataset(fasta_dir=args.dataset_dir, prefix=args.dataset, tokenizer=tokenizer)
-    dataset_eval = SeqClsDataset(fasta_dir=args.dataset_dir, prefix=args.dataset, tokenizer=tokenizer, train=False)
+    # limited computational resources
+    dataset_max_len = 3000 if args.dataset.startswith('lncRNA') else None
+
+    dataset_train = SeqClsDataset(fasta_dir=args.dataset_dir, prefix=args.dataset, tokenizer=tokenizer, fast_test=args.fast_test, max_seq_len=dataset_max_len)
+    dataset_eval = SeqClsDataset(fasta_dir=args.dataset_dir, prefix=args.dataset, tokenizer=tokenizer, train=False, fast_test=args.fast_test, max_seq_len=dataset_max_len)
     # 6230 : 2600
     print('dataset train:test', len(dataset_train), len(dataset_eval)) 
 
@@ -213,7 +222,9 @@ if __name__ == "__main__":
         label2id=LABEL2ID[args.dataset], replace_T=args.replace_T, replace_U=args.replace_U, model_name=args.model_name)
 
     # ========== Create the learning_rate scheduler (if need) and optimizer
-    optimizer = AdamW(params=[para for para in model.parameters() if para.requires_grad], lr=args.learning_rate)
+    paras = [para for para in model.parameters() if para.requires_grad]
+    print(f'Total training parameters: {sum(p.numel() for p in paras)}')
+    optimizer = AdamW(params=paras, lr=args.learning_rate)
 
     # ========== Create the metrics
     _metric = SeqClsMetrics(metrics=args.metrics)

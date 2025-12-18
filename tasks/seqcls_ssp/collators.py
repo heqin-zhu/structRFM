@@ -64,10 +64,11 @@ class SeqClsCollator(BaseCollator):
             input_ids += [self.tokenizer.pad_token_id] * (self.max_seq_len - len(input_ids))
             input_ids_stack.append(input_ids)
             labels_stack.append(label)
-
+        labels = torch.from_numpy(self.stack_fn(labels_stack))
+        input_ids = torch.from_numpy(self.stack_fn(input_ids_stack))
         return {
-            "input_ids": torch.from_numpy(self.stack_fn(input_ids_stack)),
-            "labels": torch.from_numpy(self.stack_fn(labels_stack)),
+            "input_ids": input_ids,
+            "labels": labels,
             'names': name_b,
             'seq': seq_b,
                }

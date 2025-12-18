@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 
 
 class SeqClsDataset(Dataset):
-    def __init__(self, fasta_dir, prefix, tokenizer, seed=0, train=True):
+    def __init__(self, fasta_dir, prefix, tokenizer, seed=0, train=True, fast_test=False, max_seq_len=None):
         super(SeqClsDataset, self).__init__()
 
         self.fasta_dir = fasta_dir
@@ -19,8 +19,17 @@ class SeqClsDataset(Dataset):
         fasta = osp.join(osp.join(fasta_dir, prefix), file_name)
         records = list(SeqIO.parse(fasta, "fasta"))
         self.data = [(str(x.seq), *x.description.split(" ")[0:2]) for x in records]
+        if max_seq_len is not None:
+            self.data = [x for x in self.data if len(x[0])<=max_seq_len]
         np_rng = np.random.RandomState(seed=seed)
         np_rng.shuffle(self.data)
+        if fast_test:
+            print('Fast testing...')
+            if train:
+                self.data = self.data[:500]
+            else:
+                self.data = self.data[:50]
+
 
     def __getitem__(self, idx):
         instance = self.data[idx]
