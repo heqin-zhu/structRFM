@@ -8,9 +8,8 @@ import pandas as pd
 
 from Bio.PDB import MMCIFParser, PDBIO
 
-
-from BPfold.util.misc import get_file_name
 from BPfold.util.RNA_kit import connects2dbn, connects2mat, dbn2connects, cal_metric
+
 
 def dbn2connects(dbn, strict=True):
     alphabet = ''.join([chr(ord('A')+i) for i in range(26)])
@@ -64,6 +63,9 @@ def get_seq_from_PDB_by_rnatools(pdb_path):
 
 
 def get_seq_and_SS_from_PDB_by_onepiece(pdb_path):
+    '''
+        get multiple chains
+    '''
     tmp_dir = 'tmp'
     os.makedirs(tmp_dir, exist_ok=True)
     tmp_file = os.path.join(tmp_dir, 'tmp_op.ss')
@@ -257,6 +259,25 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.'):
                 pad_ss.append(0)
         return pad_ss
 
+    if not os.path.exists(pred_pdb):
+        print('Missing pred:', pred_pdb)
+        m_dic = {
+                'RMSD': 30, 
+                'TMscore': 0, 
+                'GDT-TS': 0, 
+                'align_pred_seq': 'N', 
+                'align_gt_seq': 'N',
+                'epsilon_RMSD': 30,
+               }
+        if eval_SS:
+            m_dic['F1'] = 0
+            m_dic['Precision'] = 0
+            m_dic['Recall'] = 0
+            m_dic['MCC'] = 0
+            m_dic['gt_dbn'] = '.'
+            m_dic['pred_dbn'] = '.'
+        return m_dic
+
     m_dic = TMscore_cal(pred_pdb, gt_pdb, bin_dir=bin_dir)
     m_dic['epsilon_RMSD'] = epsilon_RMSD(pred_pdb, gt_pdb)
     # print(m_dic)
@@ -302,7 +323,7 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.'):
     return m_dic
 
 
-def cal_all_pdbs(dest, pred_pre, gt_pre, models, only_CASP=False, eval_SS=True, bin_dir='.'):
+def cal_all_pdbs(dest, pred_pre, gt_pre, models, eval_SS=True, bin_dir='.', dataset_names=None):
     tmp_dir = '.tmp_cif2pdb'
     os.makedirs(tmp_dir, exist_ok=True)
     all_data = []
@@ -310,29 +331,34 @@ def cal_all_pdbs(dest, pred_pre, gt_pre, models, only_CASP=False, eval_SS=True, 
         pred_all_dataset = os.path.join(pred_pre, model)
         if not os.path.isdir(pred_all_dataset):
             continue
-        for dataset in os.listdir(pred_all_dataset):
-            if only_CASP and 'casp' not in dataset.lower():
-                    continue
-            pred_dir = os.path.join(pred_pre, model, dataset)
+        if dataset_names is None:
+            dataset_names = {}
+            for dataset in os.listdir(pred_all_dataset):
+                dataset_names[dataset] = []
+                for f in os.listdir(os.path.join(pred_all_dataset, dataset)):
+                    if f.endswith('.pdb') or f.endswith('.cif'):
+                        if '_' in f:
+                            name = f.split('_')[0]
+                        else:
+                            name = f[:f.rfind('.')]
+                        dataset_names[dataset].append(name)
+        for dataset, names in dataset_names.items():
+            pred_dir = os.path.join(pred_all_dataset, dataset)
             gt_dir = os.path.join(gt_pre, dataset)
-            for f in os.listdir(pred_dir):
-                if f.endswith('.pdb') or f.endswith('.cif'):
-                    if '_' in f:
-                        name = f.split('_')[0]
-                    else:
-                        name = f[:f.rfind('.')]
-                    gt_pdb = os.path.join(gt_dir, name+'.pdb')
-                    pred_pdb = os.path.join(pred_dir, f)
+            for name in names:
+                gt_pdb = os.path.join(gt_dir, name+'.pdb')
+                pred_pdb = os.path.join(pred_dir, name+'.pdb')
+                pred_cif = os.path.join(pred_dir, name+'.cif')
 
-                    if f.endswith('.cif'):
-                        new_pdb = os.path.join(tmp_dir, get_file_name(pred_pdb)+'.pdb')
-                        cif2pdb(pred_pdb, new_pdb)
-                        pred_pdb = new_pdb
-                    print()
-                    print('gt_pdb:', gt_pdb)
-                    print('pred_pdb:', pred_pdb)
-                    cur_data = cal_all_metrics(pred_pdb, gt_pdb, eval_SS, bin_dir=bin_dir)
-                    all_data.append(dict(model=model, dataset=dataset, name=get_file_name(f), **cur_data))
+                if os.path.exists(pred_cif):
+                    new_pdb = os.path.join(tmp_dir, name+'.pdb')
+                    cif2pdb(pred_cif, new_pdb)
+                    pred_pdb = new_pdb
+                print()
+                print('gt_pdb:', gt_pdb)
+                print('pred_pdb:', pred_pdb)
+                cur_data = cal_all_metrics(pred_pdb, gt_pdb, eval_SS, bin_dir=bin_dir)
+                all_data.append(dict(model=model, dataset=dataset, name=name, **cur_data))
     df = pd.DataFrame(all_data)
     df.to_csv(dest, index=False)
 
@@ -419,3 +445,22 @@ def epsilon_RMSD(pdb_path, ref_path):
     except Exception as e:
         print(e, pdb_path, ref_path)
         return np.nan
+
+
+if __name__ == '__main__':
+    synthetic_names = ['R1126', 'R1128', 'R1136', 'R1138']
+    metric_names = ['RMSD', 'F1']
+    pred_pre = 'pred_results'
+    gt_pre = '/public/share/heqinzhu_share/structRFM/rna3d_vis/native'
+
+    # prepare_af3_pred(os.path.join(pred_pre, 'af3'), 'af3_results')
+
+    out_name = 'RNA3d_metrics.csv'
+    all_metric_path =  f'all_{out_name}'
+
+    models = [
+              'af3',
+              'trRosettaRNA',
+              'structRFM',
+             ]
+    cal_all_pdbs(all_metric_path, pred_pre, gt_pre, models)

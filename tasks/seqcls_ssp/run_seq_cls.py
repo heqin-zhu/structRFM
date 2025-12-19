@@ -24,7 +24,7 @@ from multimolecule import RnaTokenizer, RiNALMoModel
 
 
 from run_ss_pred import MAX_SEQ_LEN, EMBED_DIMS, MODELS
-TASKS = ["nRC", "lncRNA_H", "lncRNA_M", 'IRES', 'lncRNA_H_uni']
+TASKS = ["nRC", "lncRNA_H", "lncRNA_M", 'IRES']
 LABEL2ID = {
     "nRC": {
         "5S_rRNA": 0,

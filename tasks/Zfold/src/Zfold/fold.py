@@ -26,7 +26,7 @@ def parse_args():
                         default=0.45, type=float,
                         help='cutoff of distance restraints')
     parser.add_argument('-cpu', '--CPU',
-                        type=int, default=16,
+                        type=int, default=5,
                         help='number of CPUs to use')
     args = parser.parse_args()
     return args
