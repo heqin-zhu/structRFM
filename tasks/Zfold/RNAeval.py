@@ -222,7 +222,29 @@ def rnatool_note():
     # rna_refinement.py - a wrapper for QRNAS (Quick Refinement of Nucleic Acids)
 
 
-def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.'):
+def get_missing_metrics(eval_SS=True, missing_fill=False):
+    if missing_fill:
+        m_dic = {
+                'RMSD': 30, 
+                'TMscore': 0, 
+                'GDT-TS': 0, 
+                'align_pred_seq': 'N', 
+                'align_gt_seq': 'N',
+                'epsilon_RMSD': 30,
+               }
+        if eval_SS:
+            m_dic['F1'] = 0
+            m_dic['Precision'] = 0
+            m_dic['Recall'] = 0
+            m_dic['MCC'] = 0
+            m_dic['gt_dbn'] = '.'
+            m_dic['pred_dbn'] = '.'
+        return m_dic
+    else:
+        return {}
+
+
+def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.', missing_fill=False):
     def pad_dbn_by_aligned_seq(seq, ss,):
         pad_ss = []
         ct = 0
@@ -261,25 +283,11 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.'):
 
     if not os.path.exists(pred_pdb):
         print('Missing pred:', pred_pdb)
-        m_dic = {
-                'RMSD': 30, 
-                'TMscore': 0, 
-                'GDT-TS': 0, 
-                'align_pred_seq': 'N', 
-                'align_gt_seq': 'N',
-                'epsilon_RMSD': 30,
-               }
-        if eval_SS:
-            m_dic['F1'] = 0
-            m_dic['Precision'] = 0
-            m_dic['Recall'] = 0
-            m_dic['MCC'] = 0
-            m_dic['gt_dbn'] = '.'
-            m_dic['pred_dbn'] = '.'
-        return m_dic
-
+        return get_missing_metrics(eval_SS, missing_fill)
     m_dic = TMscore_cal(pred_pdb, gt_pdb, bin_dir=bin_dir)
-    m_dic['epsilon_RMSD'] = epsilon_RMSD(pred_pdb, gt_pdb)
+    if not m_dic:
+        return get_missing_metrics(eval_SS, missing_fill)
+    # m_dic['epsilon_RMSD'] = epsilon_RMSD(pred_pdb, gt_pdb)
     # print(m_dic)
     print(m_dic['align_gt_seq'], 'align gt seq')
     print(m_dic['align_pred_seq'], 'align pred seq')
@@ -323,7 +331,7 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.'):
     return m_dic
 
 
-def cal_all_pdbs(dest, pred_pre, gt_pre, models, eval_SS=True, bin_dir='.', dataset_names=None):
+def cal_all_pdbs(dest, pred_pre, gt_pre, models, eval_SS=True, bin_dir='.', dataset_names=None, missing_fill=False):
     tmp_dir = '.tmp_cif2pdb'
     os.makedirs(tmp_dir, exist_ok=True)
     all_data = []
@@ -345,6 +353,8 @@ def cal_all_pdbs(dest, pred_pre, gt_pre, models, eval_SS=True, bin_dir='.', data
         for dataset, names in dataset_names.items():
             pred_dir = os.path.join(pred_all_dataset, dataset)
             gt_dir = os.path.join(gt_pre, dataset)
+            if 'pdb' in os.listdir(gt_dir):
+                gt_dir = os.path.join(gt_dir, 'pdb')
             for name in names:
                 gt_pdb = os.path.join(gt_dir, name+'.pdb')
                 pred_pdb = os.path.join(pred_dir, name+'.pdb')
@@ -357,7 +367,7 @@ def cal_all_pdbs(dest, pred_pre, gt_pre, models, eval_SS=True, bin_dir='.', data
                 print()
                 print('gt_pdb:', gt_pdb)
                 print('pred_pdb:', pred_pdb)
-                cur_data = cal_all_metrics(pred_pdb, gt_pdb, eval_SS, bin_dir=bin_dir)
+                cur_data = cal_all_metrics(pred_pdb, gt_pdb, eval_SS, bin_dir=bin_dir, missing_fill=missing_fill)
                 all_data.append(dict(model=model, dataset=dataset, name=name, **cur_data))
     df = pd.DataFrame(all_data)
     df.to_csv(dest, index=False)
@@ -447,14 +457,21 @@ def epsilon_RMSD(pdb_path, ref_path):
         return np.nan
 
 
+def prepare_output_pdb(dest, src):
+    for d in os.listdir(src):
+        cur_dest = os.path.join(dest, d)
+        os.makedirs(cur_dest, exist_ok=True)
+        for f in os.listdir(os.path.join(src, d)):
+            if f.endswith('.pdb'):
+                shutil.copy(os.path.join(src, d, f), os.path.join(cur_dest, f))
+
+
 if __name__ == '__main__':
     synthetic_names = ['R1126', 'R1128', 'R1136', 'R1138']
     metric_names = ['RMSD', 'F1']
-    pred_pre = 'pred_results'
+    prefix = 'output'
+    pred_pre = os.path.join(prefix, 'pred_results')
     gt_pre = '/public/share/heqinzhu_share/structRFM/rna3d_vis/native'
-
-    # prepare_af3_pred(os.path.join(pred_pre, 'af3'), 'af3_results')
-
     out_name = 'RNA3d_metrics.csv'
     all_metric_path =  f'all_{out_name}'
 
@@ -463,4 +480,7 @@ if __name__ == '__main__':
               'trRosettaRNA',
               'structRFM',
              ]
-    cal_all_pdbs(all_metric_path, pred_pre, gt_pre, models)
+    for model in models:
+        prepare_func = prepare_af3_pred if model=='af3' else prepare_output_pdb
+        prepare_func(os.path.join(pred_pre, model), os.path.join(prefix, model))
+    cal_all_pdbs(all_metric_path, pred_pre, gt_pre, models, missing_fill=False)

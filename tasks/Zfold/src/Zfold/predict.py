@@ -234,7 +234,7 @@ if __name__ == '__main__':
     model.load_state_dict(model_ckpt['state_dict'])
 
     LM_path = os.path.join(args.para_dir, args.LM_para_name)
-    if args.LM_name == 'structRFM':
+    if args.LM_name == 'structRFM' or args.LM_name.startswith('SR'):
         LM = structRFM_infer(from_pretrained=LM_path, max_length=514, device=device)
         if args.stru_feat_type!='SS' and 'freeze' not in args.Zfold_para_name:
             LM.model.load_state_dict(model_ckpt['LM_state_dict'])

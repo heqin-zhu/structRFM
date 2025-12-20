@@ -169,15 +169,6 @@ def pred_and_fold_all(name_seq_pairs, OUTPUT_DIR, PREFIX, rerun=False, fast_test
                 print(f"fold.py failed for {target_id}: {e.stderr}")
 
 
-def prepare_output_pdb(dest, src):
-    for d in os.listdir(src):
-        cur_dest = os.path.join(dest, d)
-        os.makedirs(cur_dest, exist_ok=True)
-        for f in os.listdir(os.path.join(src, d)):
-            if f.endswith('.pdb'):
-                shutil.copy(os.path.join(src, d, f), os.path.join(cur_dest, f))
-
-
 if __name__ == '__main__':
     test_trrosettarna_with_MSA = True
 
@@ -235,4 +226,3 @@ if __name__ == '__main__':
                          rerun=False, fast_test=False, 
                          LM_para_name=LM_para_name, Zfold_para_name=Zfold_para_name,
                         )
-        prepare_output_pdb(os.path.join(pred_dir, Zfold_para_name), cur_dest)
