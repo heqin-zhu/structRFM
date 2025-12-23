@@ -47,7 +47,9 @@ group.add_argument('--LM_path',
                   )
 group.add_argument('--LM_name', type=str, default='structRFM')
 group.add_argument('--evo2_embedding_path', type=str, default='../../../../../evo2_embeddings/TSP_train.npz')
+group.add_argument('--checkpoint_path', type=str, default=None) #'/data/heqinzhu/gitrepo/trRosettaRNA_v1.1/params/model_1/models/model_1.pth.tar')
 group.add_argument('--msa_cutoff', type=int, default=200)
+group.add_argument('--channels', type=int, default=64)
 group.add_argument('--milestones', nargs='+', help='milestone epochs for lr changing', default=[10, 15, 18, 20, 25])
 group.add_argument('-init_lr', '--init_lr',
                    type=float, default=5e-4,
@@ -163,7 +165,7 @@ if __name__ == '__main__':
     log_file = f'{args.out_dir}/training.log'
     os.makedirs(checkpoint_dir, exist_ok=True)
 
-    config = {'lr': args.init_lr, 'n_blocks': 12, 'channels': 32}
+    config = {'lr': args.init_lr, 'n_blocks': 12, 'channels': args.channels}
     # config = {'lr': args.init_lr, 'n_blocks': 18, 'channels': 48}
     save_to_json(config, f'{args.out_dir}/config.json')
 
@@ -204,7 +206,14 @@ if __name__ == '__main__':
 
     # Define network models
     ## initialize RNAformer
-    model = DistPredictor(dim_2d=config['channels'], layers_2d=config['n_blocks'], stru_feat_type=args.stru_feat_type).to(device)
+    model = DistPredictor(dim_2d=config['channels'], layers_2d=config['n_blocks'], stru_feat_type=args.stru_feat_type)
+    if args.checkpoint_path and os.path.exists(args.checkpoint_path):
+        state_dict = torch.load(args.checkpoint_path)
+        if 'state_dict' in stated_dict:
+            state_dict = state_dict['state_dict']
+        model.load_state_dict(state_dict)
+
+    model.to(device)
 
     if args.LM_name == 'evo2':
         paras_list = [
@@ -213,8 +222,14 @@ if __name__ == '__main__':
     elif args.LM_name == 'structRFM':
         paras_list = [
                   dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
-                  dict(params=[para for para in LM.model.parameters() if para.requires_grad], lr=args.init_lr/2),
                  ]
+        if args.freeze_LM:
+            for para in LM.model.parameters():
+                para.requires_grad = False
+        else:
+            paras_list.append(
+                              dict(params=[para for para in LM.model.parameters() if para.requires_grad], lr=args.init_lr/2)
+                             )
     else:
         paras_list = [
                   dict(params=[para for para in model.parameters() if para.requires_grad], lr=args.init_lr),
