@@ -4,16 +4,13 @@
 set -x
 
 data_root=./data
-MODEL_PATH=${structRFM_checkpoint}
-
-MODEL_TYPE='structRFM'
 
 token='single'
 kmer=-1 # -1 means not using kmer
 
 nproc_per_node=1
-model_max_length=514
-seed=666
+model_max_length=512
+seed=42
 data=''
 
 
@@ -26,9 +23,11 @@ lr=3e-5
 DATA_PATH=${data_root}/${task}
 
 ### begin cmd
+MODEL_TYPE='structRFM'
+MODEL_PATH=${structRFM_checkpoint}
 gpu_device="6"
 freeze_flag="--freeze_base False"
-run_name='tmp'
+run_name=$MODEL_TYPE
 master_port=$(shuf -i 10000-45000 -n 1)
 # master_port=10001
 echo "Using port $master_port for communication."
@@ -59,4 +58,4 @@ train.py \
     --seed ${seed} \
     --token_type ${token} \
     --model_type ${MODEL_TYPE} \
-    $freeze_flag  > log_tmp 2>&1 &
+    $freeze_flag  > log_${MODEL_TYPE} 2>&1 &

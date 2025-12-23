@@ -68,11 +68,11 @@ class TrainingArguments(transformers.TrainingArguments):
     gradient_accumulation_steps: int = field(default=1)
     per_device_train_batch_size: int = field(default=1)
     per_device_eval_batch_size: int = field(default=1)
-    num_train_epochs: int = field(default=1)
+    num_train_epochs: int = field(default=30)
     fp16: bool = field(default=False)
-    logging_steps: int = field(default=100)
-    save_steps: int = field(default=100)
-    eval_steps: int = field(default=100)
+    logging_steps: int = field(default=200)
+    save_steps: int = field(default=400)
+    eval_steps: int = field(default=200)
     evaluation_strategy: str = field(default="steps"),
     warmup_steps: int = field(default=50)
     weight_decay: float = field(default=0.01)
@@ -103,7 +103,6 @@ def set_seed(args):
     torch.set_num_threads(4)
     if torch.cuda.device_count() > 0:
         torch.cuda.manual_seed_all(args.seed)
-    print(f"seed is fixed ,seed = {args.seed}")
 
 def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str):
     """Collects the state dict and dump to disk."""
@@ -152,8 +151,8 @@ def bpe_position(texts,attn_mask, tokenizer):
             position_id[i,index] = len(token) #start after [cls]   
         position_id[i, index+1] = 1 #[sep]
         
-    print(position_id[0,:])
-    print('position_id.shape',position_id.shape)
+    # print(position_id[0,:])
+    # print('position_id.shape',position_id.shape)
     return position_id
 class SupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
@@ -180,7 +179,7 @@ class SupervisedDataset(Dataset):
                 texts = [d[0].upper().replace("U", "T") for d in data]          
             labels = np.array([list(map(float, d[1])) for d in data]).astype(np.float32)          
         else:
-            print(len(data[0]))
+            # print(len(data[0]))
             raise ValueError("Data format not supported.")
         seq_length = len(texts[0])
         if kmer != -1:
@@ -193,12 +192,12 @@ class SupervisedDataset(Dataset):
             if torch.distributed.get_rank() == 0:
                 torch.distributed.barrier()
         # ensure tokenizer
-        print(type(texts[0]))
-        print(texts[0])
+        # print(type(texts[0]))
+        # print(texts[0])
         test_example = tokenizer.tokenize(texts[0])
-        print(test_example)
-        print(len(test_example))
-        print(tokenizer(texts[0]))
+        # print(test_example)
+        # print(len(test_example))
+        # print(tokenizer(texts[0]))
         output = tokenizer(
             texts,
             return_tensors="pt",
@@ -272,10 +271,10 @@ def top_k_accuracy_multidimensional(scores, true_labels, class_index):
     # turn true_labels into one-hot
     true_labels = true_labels.flatten()
     one_hot_labels = np.zeros((true_labels.size, 3))
-    print('in top k', true_labels.size, true_labels.shape)
-    print('in top k', type(true_labels))
-    print('in top k', scores.size, scores.shape)
-    print('in top k', type(scores))
+    # print('in top k', true_labels.size, true_labels.shape)
+    # print('in top k', type(true_labels))
+    # print('in top k', scores.size, scores.shape)
+    # print('in top k', type(scores))
     one_hot_labels[np.arange(true_labels.size), true_labels.astype(int)] = 1
     class_true_labels = one_hot_labels[:, class_index].flatten()
     
@@ -312,7 +311,7 @@ Compute metrics used for huggingface trainer.
 """
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
-    print(logits.shape, labels.shape)
+    # print(logits.shape, labels.shape)
     return calculate_metric_with_sklearn(logits, labels)
 
 
@@ -346,7 +345,7 @@ def train():
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             model_args.model_name_or_path,
             cache_dir=training_args.cache_dir,
-            model_max_length=training_args.model_max_length,
+            model_max_length=training_args.model_max_length+2,
             padding_side="right",
             use_fast=True,
             trust_remote_code=True,

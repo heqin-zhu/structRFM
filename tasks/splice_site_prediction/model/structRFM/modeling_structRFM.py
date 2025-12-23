@@ -550,8 +550,8 @@ class structRFMForSequenceClassification(structRFMPreTrainedModel):
             return_dict=return_dict,
         )
 
-        print('in modeling rnastrubet, line 1074')
-        print(type(outputs), outputs.shape)
+        # print('in modeling rnastrubet, line 1074')
+        # print(type(outputs), outputs.shape)
         pooled_output = outputs[1]
         logits = self.classifier(pooled_output)
 
@@ -625,7 +625,7 @@ class structRFMForNucleotideLevel(structRFMPreTrainedModel):
         self.bert = AutoModel.from_pretrained(model_path)
        
         self.tokenizer = tokenizer
-        print(f'in structRFMForNucleotideLevel model, token_type: {self.config.token_type}')
+        # print(f'in structRFMForNucleotideLevel model, token_type: {self.config.token_type}')
         if self.config.token_type == 'bpe' or  self.config.token_type=='non-overlap':
             self.classifier_a = nn.Linear(config.hidden_size, config.num_labels)
             self.classifier_t = nn.Linear(config.hidden_size, config.num_labels)
