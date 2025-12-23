@@ -258,7 +258,7 @@ class SspTrainer(BaseTrainer):
         elapsed_time = time.time() - time_st
         print('Train Epoch: {}\tTime: {:.3f}s'.format(epoch, elapsed_time))
 
-    def eval(self, epoch):
+    def eval(self, epoch=float('inf')):
         self.model.eval()
         n_dataset = len(self.eval_dataloader.dataset)
         with tqdm(total=n_dataset) as pbar:

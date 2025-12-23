@@ -40,6 +40,7 @@ parser.add_argument('--window', default=100, type=int, help='sliding window, shi
 parser.add_argument('-gpu', '--gpu', type=str, default='0', help='use which gpu')
 parser.add_argument('--stru_feat_type', default='SS', choices=['SS', 'LM', 'both'])
 parser.add_argument('--use_outer_product_mean', action='store_true')
+parser.add_argument('--use_attn_feat', action='store_true')
 parser.add_argument('-cpu', '--cpu', type=int, default=2, help='number of CPUs to use')
 parser.add_argument('--evo2_embedding_dir', type=str)
 parser.add_argument('--LM_name', type=str, default='structRFM')
@@ -60,15 +61,18 @@ torch.set_num_threads(args.cpu)
 device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
 
-def get_matrix_feature(LM, name, seq, sel=None, use_outer_product_mean=False):
+def get_matrix_feature(LM, name, seq, sel=None, use_outer_product_mean=False, use_attn_feat=False):
     if LM_name == 'structRFM':
         feat_dic = LM.extract_feature(seq)
-        if use_outer_product_mean:
-            LM_embed = feat_dic['seq_feat']
-            shape = LM_embed.shape
-            return (LM_embed.unsqueeze(-3).unsqueeze(-2) * LM_embed.unsqueeze(-2).unsqueeze(-1)).reshape(*shape[:-1], shape[-2], -1).mean(dim=-1)
+        if use_attn_feat:
+            return feat_dic['last_mean_attn_feat']
         else:
-            return feat_dic['mat_feat']
+            if use_outer_product_mean:
+                LM_embed = feat_dic['seq_feat']
+                shape = LM_embed.shape
+                return (LM_embed.unsqueeze(-3).unsqueeze(-2) * LM_embed.unsqueeze(-2).unsqueeze(-1)).reshape(*shape[:-1], shape[-2], -1).mean(dim=-1)
+            else:
+                return feat_dic['mat_feat']
     elif LM_name.lower().startswith('rinalmo'):
         input_ids = torch.tensor(RINALMO_TOKENIZER(seq)['input_ids']).to(device).unsqueeze(0)
         output = LM(input_ids)
@@ -79,20 +83,22 @@ def get_matrix_feature(LM, name, seq, sel=None, use_outer_product_mean=False):
         if sel is not None:
             feat = feat[sel, :]
         return feat @ feat.transpose(-1, -2)
+    else:
+        raise Exception(f'Unknown LM: {args.LM_name}')
 
 
-def get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel, use_outer_product_mean=False):
+def get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel, use_outer_product_mean=False, use_attn_feat=False):
     '''
         seq and ss are cropped
     '''
     if stru_feat_type != 'SS':
-        LM_feat = get_matrix_feature(LM, fname, seq, sel, use_outer_product_mean=use_outer_product_mean).unsqueeze(-1)
+        LM_feat = get_matrix_feature(LM, fname, seq, sel, use_outer_product_mean=use_outer_product_mean, use_attn_feat=use_attn_feat).unsqueeze(-1)
         if stru_feat_type == 'both':
             LM_feat = torch.cat([ss_, LM_feat], dim=-1)
     return LM_feat
 
 
-def predict(model, fname, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=None, use_outer_product_mean=False):
+def predict(model, fname, seq, msa, ss_, window=100, shift=50, stru_feat_type='SS', LM=None, use_outer_product_mean=False, use_attn_feat=False):
     if ss_.shape[0] != msa.shape[-1]:
         raise ValueError(f'ss length {ss_.shape[0]}, msa length {msa.shape[1]}!')
     with torch.no_grad():
@@ -130,7 +136,7 @@ def predict(model, fname, seq, msa, ss_, window=100, shift=50, stru_feat_type='S
                     input_msa = msa_feat[:, sel]
                     input_ss = ss_[sel, :, :][:, sel, :]
                     crop_seq = ''.join([ch for ch, flag in zip(seq,sel) if flag])
-                    input_ss = get_stru_feat(LM, fname, crop_seq, input_ss, stru_feat_type, sel=sel, use_outer_product_mean=use_outer_product_mean)
+                    input_ss = get_stru_feat(LM, fname, crop_seq, input_ss, stru_feat_type, sel=sel, use_outer_product_mean=use_outer_product_mean, use_attn_feat=use_attn_feat)
                     mask = torch.sum(input_msa == 4, dim=-1) < .7 * sel.sum()  # remove too gappy sequences
 
                     input_msa = input_msa[mask]
@@ -161,7 +167,7 @@ def predict(model, fname, seq, msa, ss_, window=100, shift=50, stru_feat_type='S
                         else:
                             pred_dict[k][a] /= count_2d
         else:
-            input_ss = get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel=None, use_outer_product_mean=use_outer_product_mean)
+            input_ss = get_stru_feat(LM, fname, seq, ss_, stru_feat_type, sel=None, use_outer_product_mean=use_outer_product_mean, use_attn_feat=use_attn_feat)
             pred_dict = model(msa_feat.unsqueeze(0), input_ss.unsqueeze(0), res_id=res_id.to(device), msa_cutoff=args.nrows)['geoms']
 
     for l in pred_dict:
@@ -234,7 +240,7 @@ if __name__ == '__main__':
     model.load_state_dict(model_ckpt['state_dict'])
 
     LM_path = os.path.join(args.para_dir, args.LM_para_name)
-    if args.LM_name == 'structRFM' or args.LM_name.startswith('SR'):
+    if args.LM_name == 'structRFM':
         LM = structRFM_infer(from_pretrained=LM_path, max_length=514, device=device)
         if args.stru_feat_type!='SS' and 'freeze' not in args.Zfold_para_name:
             LM.model.load_state_dict(model_ckpt['LM_state_dict'])

@@ -40,7 +40,7 @@ def fasta_to_a3m(fasta_file, a3m_file):
         print(f"Converted {fasta_file} to {a3m_file} using Python")
 
 
-def pred_and_fold_all_with_MSA(name_seq_pairs, OUTPUT_DIR, PREFIX, data_dir, rerun=False, fast_test=False, LM_para_name='', Zfold_para_name='', window=100, stru_feat_type='SS', gpu='0', LM_name='structRFM', evo2_embedding_dir='evo2_embedding', num_cpu=16, run_fold=False):
+def pred_and_fold_all_with_MSA(name_seq_pairs, OUTPUT_DIR, PREFIX, data_dir, rerun=False, fast_test=False, LM_para_name='', Zfold_para_name='', window=100, stru_feat_type='SS', gpu='0', LM_name='structRFM', evo2_embedding_dir='evo2_embedding', num_cpu=16, run_fold=False, use_attn_feat=False):
     ''' Use MSA, used '''
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     PREDICT_PY = os.path.join(PREFIX, "src/Zfold/predict.py")
@@ -76,6 +76,8 @@ def pred_and_fold_all_with_MSA(name_seq_pairs, OUTPUT_DIR, PREFIX, data_dir, rer
         print(sequence)
         print(msa_path, ss_path)
         predict_cmd = ["python", PREDICT_PY, "-i", msa_path, "-o", npz_file, '-ss', ss_path, '-ss_fmt', 'ct', "-gpu", gpu, "--cpu", "16", '--LM_para_name', LM_para_name, '--Zfold_para_name', Zfold_para_name, '--window', window, '--stru_feat_type', stru_feat_type, '--para_dir', PARA_DIR, '--LM_name', LM_name, '--evo2_embedding_dir', evo2_embedding_dir]
+        if use_attn_feat:
+            predict_cmd.append('--use_attn_feat')
         predict_cmd = [str(i) for i in predict_cmd]
         print(' '.join(predict_cmd))
         try:
@@ -172,6 +174,7 @@ def pred_and_fold_all(name_seq_pairs, OUTPUT_DIR, PREFIX, rerun=False, fast_test
 if __name__ == '__main__':
     test_trrosettarna_with_MSA = True
 
+    LM_name = 'structRFM'
     PREFIX = os.path.abspath('.')
     DATA_DIR = os.path.join(PREFIX, 'Zfold_test_data')
     dest = 'outputs_tsp'

@@ -10,6 +10,9 @@ from Bio.PDB import MMCIFParser, PDBIO
 
 from BPfold.util.RNA_kit import connects2dbn, connects2mat, dbn2connects, cal_metric
 
+import barnaba as bb 
+from cal_eRMSD import epsilon_RMSD, _to_float_ermsd
+
 
 def dbn2connects(dbn, strict=True):
     alphabet = ''.join([chr(ord('A')+i) for i in range(26)])
@@ -62,7 +65,7 @@ def get_seq_from_PDB_by_rnatools(pdb_path):
     return seq
 
 
-def get_seq_and_SS_from_PDB_by_onepiece(pdb_path):
+def get_seq_and_dbn_from_PDB_by_onepiece(pdb_path):
     '''
         get multiple chains
     '''
@@ -76,7 +79,7 @@ def get_seq_and_SS_from_PDB_by_onepiece(pdb_path):
         return seq, ss
 
 
-def get_SS_from_PDB_by_briqx(pdb_path):
+def get_dbn_from_PDB_by_briqx(pdb_path):
     CMD = f'pdbInfo -i {pdb_path} -ss'
     res = subprocess.Popen(CMD, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     text = res.stdout.read()
@@ -88,7 +91,7 @@ def get_SS_from_PDB_by_briqx(pdb_path):
         return None
 
 
-def get_SS_from_PDB_by_RNAVIEW(pdb_path):
+def get_connects_from_PDB_by_RNAVIEW(pdb_path):
     '''
         will generate files in data_dir, awful
     '''
@@ -222,6 +225,33 @@ def rnatool_note():
     # rna_refinement.py - a wrapper for QRNAS (Quick Refinement of Nucleic Acids)
 
 
+def get_align_idxs(pred_seq, gt_seq):
+    pred_seq = pred_seq.replace('T', 'U').upper()
+    gt_seq = gt_seq.replace('T', 'U').upper()
+    base_set = set('AUGCN')
+    pred_i = gt_i = 0
+    pred_n, gt_n = len(pred_seq), len(gt_seq)
+    pred_idxs = []
+    gt_idxs = []
+    while pred_i<pred_n and gt_i<gt_n:
+        pred_base = pred_seq[pred_i]
+        gt_base = gt_seq[gt_i]
+        if pred_base in base_set:
+            if pred_base == gt_base:
+                pred_idxs.append(True)
+                gt_idxs.append(True)
+            else:
+                pred_idxs.append(False)
+                if gt_base in base_set:
+                    gt_idxs.append(False)
+        else:
+            if gt_base in base_set:
+                gt_idxs.append(False)
+        pred_i +=1
+        gt_i +=1
+    return np.array(pred_idxs, dtype=bool), np.array(gt_idxs, dtype=bool)
+
+
 def get_missing_metrics(eval_SS=True, missing_fill=False):
     if missing_fill:
         m_dic = {
@@ -230,10 +260,11 @@ def get_missing_metrics(eval_SS=True, missing_fill=False):
                 'GDT-TS': 0, 
                 'align_pred_seq': 'N', 
                 'align_gt_seq': 'N',
-                'epsilon_RMSD': 30,
+                'eRMSD': 30,
                }
         if eval_SS:
             m_dic['F1'] = 0
+            m_dic['INF'] = 0
             m_dic['Precision'] = 0
             m_dic['Recall'] = 0
             m_dic['MCC'] = 0
@@ -287,27 +318,53 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.', missing_fill=Fa
     m_dic = TMscore_cal(pred_pdb, gt_pdb, bin_dir=bin_dir)
     if not m_dic:
         return get_missing_metrics(eval_SS, missing_fill)
-    # m_dic['epsilon_RMSD'] = epsilon_RMSD(pred_pdb, gt_pdb)
+    aln_pred_seq = m_dic['align_pred_seq']
+    aln_gt_seq = m_dic['align_gt_seq']
+    print(f'aln_pred_seq: {len(aln_pred_seq):4d} {aln_pred_seq}')
+    print(f'aln_gt_seq  : {len(aln_gt_seq):4d} {aln_gt_seq}')
+
+    pred_idxs, gt_idxs = get_align_idxs(aln_pred_seq, aln_gt_seq)
+
+    ori_pred_seq = aln_pred_seq.replace('-', '')
+    ori_gt_seq = aln_gt_seq.replace('-', '')
+    cal_pred_seq = ''.join([c for c, bl in zip(ori_pred_seq, pred_idxs) if bl])
+    cal_gt_seq = ''.join([c for c, bl in zip(ori_gt_seq, gt_idxs) if bl])
+    print(f'cal_pred_seq: {len(cal_pred_seq):4d} {cal_pred_seq}')
+    print(f'cal_gt_seq  : {len(cal_gt_seq):4d} {cal_gt_seq}')
+    # mod line 77 and 85 in lib/python3.8/site-packages/barnaba/functions.py
+    # residues_ref!=None  ->   residues_ref is not None
+    try:
+        m_dic['eRMSD'] = _to_float_ermsd(bb.ermsd(gt_pdb, pred_pdb, residues_ref=gt_idxs, residues_target=pred_idxs))
+    except Exception as e:
+        print(e)
+        try:
+            m_dic['eRMSD'], status, info = epsilon_RMSD(gt_pdb, pred_pdb)
+        except Exception as e:
+            print(e)
+            m_dic['eRMSD'] = np.nan
     # print(m_dic)
-    print(m_dic['align_gt_seq'], 'align gt seq')
-    print(m_dic['align_pred_seq'], 'align pred seq')
     if eval_SS:
         # try:
-        #     pred_dbn = get_SS_from_PDB_by_briqx(pred_pdb)
-        #     gt_dbn = get_SS_from_PDB_by_briqx(gt_pdb)
+        #     pred_dbn = get_dbn_from_PDB_by_briqx(pred_pdb)
+        #     gt_dbn = get_dbn_from_PDB_by_briqx(gt_pdb)
         #     pred_ss = dbn2connects(pred_dbn)
         #     gt_ss = dbn2connects(gt_dbn)
         # except Exception as e:
         #     print(e, pred_pdb, gt_pdb)
-        #     pred_ss = get_SS_from_PDB_by_RNAVIEW(pred_pdb)
-        #     gt_ss = get_SS_from_PDB_by_RNAVIEW(gt_pdb)
+        #     pred_ss = get_connects_from_PDB_by_RNAVIEW(pred_pdb)
+        #     gt_ss = get_connects_from_PDB_by_RNAVIEW(gt_pdb)
         #     pred_dbn = connects2dbn(pred_ss)
         #     gt_dbn = connects2dbn(gt_ss)
 
-        pred_ss = get_SS_from_PDB_by_RNAVIEW(pred_pdb)
-        gt_ss = get_SS_from_PDB_by_RNAVIEW(gt_pdb)
-        pred_dbn = connects2dbn(pred_ss)
-        gt_dbn = connects2dbn(gt_ss)
+        _, pred_dbn = get_seq_and_dbn_from_PDB_by_onepiece(pred_pdb)
+        _, gt_dbn = get_seq_and_dbn_from_PDB_by_onepiece(gt_pdb)
+        pred_ss = dbn2connects(pred_dbn)
+        gt_ss = dbn2connects(gt_dbn)
+
+        # pred_ss = get_connects_from_PDB_by_RNAVIEW(pred_pdb)
+        # gt_ss = get_connects_from_PDB_by_RNAVIEW(gt_pdb)
+        # pred_dbn = connects2dbn(pred_ss)
+        # gt_dbn = connects2dbn(gt_ss)
 
         ## broken data
         if os.path.basename(gt_pdb) == 'PZ23.pdb':
@@ -322,6 +379,7 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.', missing_fill=Fa
         SS_metric_dic = cal_metric(connects2mat(align_pred_ss), connects2mat(align_gt_ss)) # F1, P, R, INF, MCC
         print('SS metric:', SS_metric_dic)
         m_dic['F1'] = SS_metric_dic['F1']
+        m_dic['INF'] = SS_metric_dic['INF']
         m_dic['Precision'] = SS_metric_dic['Precision']
         m_dic['Recall'] = SS_metric_dic['Recall']
         m_dic['MCC'] = SS_metric_dic['MCC']
@@ -442,33 +500,20 @@ def entanglement():
     raise NotImplementedError
 
 
-## #2
-def epsilon_RMSD(pdb_path, ref_path):
-    '''
-        epsilon RMSD
-        pip install mdtraj
-        pip install barnaba
-    '''
-    import barnaba as bb 
-    try:
-        return bb.ermsd(ref_path, pdb_path)
-    except Exception as e:
-        print(e, pdb_path, ref_path)
-        return np.nan
-
-
 def prepare_output_pdb(dest, src):
     for d in os.listdir(src):
-        cur_dest = os.path.join(dest, d)
-        os.makedirs(cur_dest, exist_ok=True)
-        for f in os.listdir(os.path.join(src, d)):
-            if f.endswith('.pdb'):
-                shutil.copy(os.path.join(src, d, f), os.path.join(cur_dest, f))
+        src_dir = os.path.join(src, d)
+        if os.path.isdir(src_dir):
+            cur_dest = os.path.join(dest, d)
+            os.makedirs(cur_dest, exist_ok=True)
+            for f in os.listdir(src_dir):
+                if f.endswith('.pdb'):
+                    shutil.copy(os.path.join(src, d, f), os.path.join(cur_dest, f))
 
 
 if __name__ == '__main__':
     synthetic_names = ['R1126', 'R1128', 'R1136', 'R1138']
-    metric_names = ['RMSD', 'F1']
+    metric_names = ['RMSD', 'INF']
     prefix = 'output'
     pred_pre = os.path.join(prefix, 'pred_results')
     gt_pre = '/public/share/heqinzhu_share/structRFM/rna3d_vis/native'

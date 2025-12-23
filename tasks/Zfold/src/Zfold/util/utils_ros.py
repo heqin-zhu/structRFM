@@ -90,11 +90,13 @@ def fold_from_cst(args):
 
     top5 = sorted(score_dict, key=lambda d: score_dict[d])[:5]
     for i, pose in enumerate(top5):
-        pose.dump_pdb(f'{args.tmpdir}/model_{i + 1}.pdb')
+        path = f'{args.tmpdir}/model_{i + 1}.pdb'
+        print(f'dumping {path}')
+        pose.dump_pdb(path)
     ermsd = eRMSD(args.NPZ, args.tmpdir)
     name = args.OUT
     best_pose.dump_pdb(name)
-    print('\ndone')
+    print(f'\ndone: {name}')
     print(f'eRMSD = {ermsd:.2f}')
     lines = open(name).readlines()
     lines[0] = lines[0].strip() + f'  eRMSD = {ermsd:.2f}\n'

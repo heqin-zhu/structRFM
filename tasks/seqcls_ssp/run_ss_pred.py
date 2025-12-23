@@ -31,7 +31,7 @@ from multimolecule import RnaTokenizer, RiNALMoModel
 
 # ========== Define constants
 MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'structRFM-2048', 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', 'evo2']
-TASKS = ["RNAStrAlign", "bpRNA1m"]
+TASKS = ["RNAStrAlign", "bpRNA1m", 'Rfam14.10-15.0_RNAStrAlign', 'Rfam14.10-15.0_bpRNA1m']
 MAX_SEQ_LEN = {"RNABERT": 440,
                "RNAMSM": 1024,
                "RNAFM": 1024,
@@ -56,6 +56,8 @@ EMBED_DIMS = {
 DATASETS = {
     "RNAStrAlign": ("RNAStrAlign600.lst", "archiveII600.lst"),
     "bpRNA1m": ("TR0.lst", "TS0.lst"),
+    "Rfam14.10-15.0_RNAStrAlign": ("RNAStrAlign600.lst", "Rfam14.10-15.0.lst"),
+    "Rfam14.10-15.0_bpRNA1m": ("TR0.lst", "Rfam14.10-15.0.lst"),
 }
 
 def get_args():
@@ -77,7 +79,7 @@ def get_args():
     parser.add_argument('--task_name', type=str, default="RNAStrAlign",
                         choices=TASKS, help='Task name of training data.')
     parser.add_argument('--dataloader_num_workers', type=int,
-                        default=8, help='The number of threads used by dataloader.')
+                        default=4, help='The number of threads used by dataloader.')
     parser.add_argument('--dataloader_drop_last', type=str2bool,
                         default=True, help='Whether drop the last batch sample.')
     parser.add_argument('--dataset_dir', type=str,
@@ -182,7 +184,7 @@ if __name__ == "__main__":
             freeze(pretrained_model)
         pretrained_model = RiNALMoForSsp(pretrained_model)
     elif args.model_name == 'structRFM':
-        tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len)
+        tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
         model_paras = get_model_scale(args.model_scale)
         model = get_structRFM(from_pretrained=args.LM_path, output_hidden_states=True, tokenizer=tokenizer, pretrained_length=514, **model_paras)
         if args.freeze_base:
@@ -236,7 +238,11 @@ if __name__ == "__main__":
             model.load_state_dict(data)
         print(f'Loading {args.checkpoint_path}')
         epoch_str = os.path.basename(args.checkpoint_path).split('_')[1]
-        begin_epoch = int(''.join([ch for ch in epoch_str if ch.isdigit()]))+1
+        try:
+            print(epoch_str)
+            begin_epoch = int(''.join([ch for ch in epoch_str if ch.isdigit()]))+1
+        except Exception as e:
+            print(e)
     print(f'Training begin_epoch: {begin_epoch}')
     model.to(args.device)
     pretrained_model = pretrained_model.to(args.device)
@@ -279,6 +285,8 @@ if __name__ == "__main__":
     if args.train:
         for i_epoch in range(begin_epoch, begin_epoch+args.num_train_epochs):
             if not ssp_trainer.get_status():
-                print("Epoch: {}".format(i_epoch))
+                print("epoch: {}".format(i_epoch))
                 ssp_trainer.train(i_epoch)
                 ssp_trainer.eval(i_epoch)
+        begin_epoch = begin_epoch+args.num_train_epochs
+    ssp_trainer.eval(begin_epoch)

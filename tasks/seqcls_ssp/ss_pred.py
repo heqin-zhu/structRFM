@@ -521,7 +521,7 @@ class structRFMForSsp(nn.Module):
         self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
 
     def forward(self, input_ids, attention_mask=None, **kargs):
-        outputs = self.bert(input_ids, attention_mask=attention_mask)
+        outputs = self.bert(input_ids, output_hidden_states=True, attention_mask=attention_mask)
         embeddings = outputs.hidden_states[-1].detach()
         return embeddings
 
