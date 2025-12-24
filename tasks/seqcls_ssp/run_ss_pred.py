@@ -79,7 +79,7 @@ def get_args():
     parser.add_argument('--task_name', type=str, default="RNAStrAlign",
                         choices=TASKS, help='Task name of training data.')
     parser.add_argument('--dataloader_num_workers', type=int,
-                        default=4, help='The number of threads used by dataloader.')
+                        default=0, help='The number of threads used by dataloader.')
     parser.add_argument('--dataloader_drop_last', type=str2bool,
                         default=True, help='Whether drop the last batch sample.')
     parser.add_argument('--dataset_dir', type=str,
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     elif args.model_name == 'structRFM':
         tokenizer = get_mlm_tokenizer(max_length=args.max_seq_len+2)
         model_paras = get_model_scale(args.model_scale)
-        model = get_structRFM(from_pretrained=args.LM_path, output_hidden_states=True, tokenizer=tokenizer, pretrained_length=514, **model_paras)
+        model = get_structRFM(from_pretrained=args.LM_path, output_hidden_states=True, tokenizer=tokenizer, **model_paras)
         if args.freeze_base:
             freeze(model)
         pretrained_model = structRFMForSsp(model)

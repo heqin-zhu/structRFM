@@ -62,12 +62,13 @@ class BaseTrainer(object):
         # init dataloaders
         self._prepare_dataloaders()
 
-    def _get_dataloader(self, dataset):
+    def _get_dataloader(self, dataset, shuffle=True):
         return DataLoader(
             dataset,
             batch_size=self.args.batch_size,
             collate_fn=self.data_collator,
             num_workers=self.args.dataloader_num_workers,
+            shuffle=shuffle,
         )
 
     def _prepare_dataloaders(self):
@@ -75,7 +76,7 @@ class BaseTrainer(object):
             self.train_dataloader = self._get_dataloader(self.train_dataset)
 
         if self.eval_dataset:
-            self.eval_dataloader = self._get_dataloader(self.eval_dataset)
+            self.eval_dataloader = self._get_dataloader(self.eval_dataset, shuffle=False)
 
     def save_model(self, metrics_dataset, epoch):
         """

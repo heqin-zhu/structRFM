@@ -11,7 +11,9 @@ from Bio.PDB import MMCIFParser, PDBIO
 from BPfold.util.RNA_kit import connects2dbn, connects2mat, dbn2connects, cal_metric
 
 import barnaba as bb 
-from cal_eRMSD import epsilon_RMSD, _to_float_ermsd
+from .cal_eRMSD import epsilon_RMSD, _to_float_ermsd
+
+file_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def dbn2connects(dbn, strict=True):
@@ -120,7 +122,7 @@ def get_connects_from_PDB_by_RNAVIEW(pdb_path):
     return connects
 
 
-def TMscore_cal(model, native, bin_dir='.'):
+def TMscore_cal(model, native):
     '''
     wget https://zhanggroup.org/TM-score/TMscore.cpp
     g++ -static -O3 -ffast-math -lm -o TMscore TMscore.cpp 
@@ -130,10 +132,10 @@ def TMscore_cal(model, native, bin_dir='.'):
     chmod +x TMscore_cpp
     '''
     ## Run TM-score to compare 'model' and 'native':
-    CMD = f'{bin_dir}/TMscore_cpp -seq {model} {native}'
+    CMD = f'{file_dir}/TMscore_cpp -seq {model} {native}'
     ## Run TM-score to compare two complex structures with multiple chains
     ## Compare all chains with the same chain identifier
-    CMD_C = f'{bin_dir}/TMscore_cpp -seq -c {model} {native}'
+    CMD_C = f'{file_dir}/TMscore_cpp -seq -c {model} {native}'
 
     res = subprocess.Popen(CMD, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     text = res.stdout.read()
@@ -148,7 +150,7 @@ def TMscore_cal(model, native, bin_dir='.'):
                 'align_pred_seq': align_pred_seq.upper(), 
                 'align_gt_seq': align_gt_seq.upper(),
                }
-    print(f'[Warning]: No RMSD metric found: model={model}, native={native}')
+    print(f'[Warning]: No RMSD metric found: {CMD}')
     return dict()
 
 
@@ -275,7 +277,7 @@ def get_missing_metrics(eval_SS=True, missing_fill=False):
         return {}
 
 
-def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.', missing_fill=False):
+def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, missing_fill=False):
     def pad_dbn_by_aligned_seq(seq, ss,):
         pad_ss = []
         ct = 0
@@ -315,7 +317,7 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.', missing_fill=Fa
     if not os.path.exists(pred_pdb):
         print('Missing pred:', pred_pdb)
         return get_missing_metrics(eval_SS, missing_fill)
-    m_dic = TMscore_cal(pred_pdb, gt_pdb, bin_dir=bin_dir)
+    m_dic = TMscore_cal(pred_pdb, gt_pdb)
     if not m_dic:
         return get_missing_metrics(eval_SS, missing_fill)
     aln_pred_seq = m_dic['align_pred_seq']
@@ -385,14 +387,15 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, bin_dir='.', missing_fill=Fa
         m_dic['MCC'] = SS_metric_dic['MCC']
         m_dic['gt_dbn'] = gt_dbn
         m_dic['pred_dbn'] = pred_dbn
+        m_dic['DI'] = m_dic['RMSD']/m_dic['INF'] if m_dic['INF']!=0 else m_dic['RMSD']/0.1
+
         print(m_dic)
     return m_dic
 
 
-def cal_all_pdbs(dest, pred_pre, gt_pre, models, eval_SS=True, bin_dir='.', dataset_names=None, missing_fill=False):
+def iter_pred_gt_model_dataset(pred_pre, gt_pre, models, dataset_names=None):
     tmp_dir = '.tmp_cif2pdb'
     os.makedirs(tmp_dir, exist_ok=True)
-    all_data = []
     for model in models:
         pred_all_dataset = os.path.join(pred_pre, model)
         if not os.path.isdir(pred_all_dataset):
@@ -425,12 +428,13 @@ def cal_all_pdbs(dest, pred_pre, gt_pre, models, eval_SS=True, bin_dir='.', data
                 print()
                 print('gt_pdb:', gt_pdb)
                 print('pred_pdb:', pred_pdb)
-                cur_data = cal_all_metrics(pred_pdb, gt_pdb, eval_SS, bin_dir=bin_dir, missing_fill=missing_fill)
-                all_data.append(dict(model=model, dataset=dataset, name=name, **cur_data))
-    df = pd.DataFrame(all_data)
-    df.to_csv(dest, index=False)
-
-
+                yield {
+                       'model': model,
+                       'dataset': dataset,
+                       'name': name,
+                       'pred_pdb': pred_pdb,
+                       'gt_pdb': gt_pdb,
+                      }
 
 def cif2pdb(src, dest):
     structure_id = "example"
@@ -459,47 +463,6 @@ def prepare_af3_pred(dest, src):
         cif2pdb(src_path, dest_path)
 
 
-### Additional evaluation    
-
-## #1
-def stereochemical(pdb_path):
-    ''' stereochemical quality
-    # https://sw-tools.rcsb.org/apps/MAXIT/source.html
-    # tar -xvf maxit-v10-linux64.tar.gz
-    # cd maxit-v10-linux64
-    # chmod +x maxit
-    # export PATH=$PWD:$PATH
-    '''
-    cache_dir = '.RNAeval_cache'
-    os.makedirs(cache_dir, exist_ok=True)
-    out_path = os.path.join(cache_dir, os.path.basename(pdb_path)+'.maxit.txt')
-    err_path = os.path.join(cache_dir, os.path.basename(pdb_path)+'.maxit.err')
-    os.system(f'maxit -input {pdb_path} > {out_path} 2> {err_Path}')
-    os.system(f"grep -Ei 'close|bond length|bond angle|planar|chirality|polymer' {out_path}")
-    raise NotImplementedError
-    return 
-
-
-def knot_artifact(pdb_path, ntrials=200):
-    '''
-    # 3. Knotted artifacts in predicted 3D RNA structures
-    - https://github.com/ilbsm/CASP15_knotted_artifacts
-    - pip install topoly
-    '''
-    import topoly
-    from topoly import alexander
-    coords = topoly.read_xyz(pdb_path, atoms=["P","O5'","C5'","C4'","C3'","O3'"])
-    result = alexander(coords, ntrials=ntrials) # random 闭合, compute Alexander polynomial
-    return result ## <50%: unknot, if knot, output knot type, such as "3_1" for trefoil knot
-
-
-
-def entanglement():
-    # RNA 3D structure entanglement
-    # https://www.cs.put.poznan.pl/mantczak/spider.zip
-    raise NotImplementedError
-
-
 def prepare_output_pdb(dest, src):
     for d in os.listdir(src):
         src_dir = os.path.join(src, d)
@@ -509,23 +472,3 @@ def prepare_output_pdb(dest, src):
             for f in os.listdir(src_dir):
                 if f.endswith('.pdb'):
                     shutil.copy(os.path.join(src, d, f), os.path.join(cur_dest, f))
-
-
-if __name__ == '__main__':
-    synthetic_names = ['R1126', 'R1128', 'R1136', 'R1138']
-    metric_names = ['RMSD', 'INF']
-    prefix = 'output'
-    pred_pre = os.path.join(prefix, 'pred_results')
-    gt_pre = '/public/share/heqinzhu_share/structRFM/rna3d_vis/native'
-    out_name = 'RNA3d_metrics.csv'
-    all_metric_path =  f'all_{out_name}'
-
-    models = [
-              'af3',
-              'trRosettaRNA',
-              'structRFM',
-             ]
-    for model in models:
-        prepare_func = prepare_af3_pred if model=='af3' else prepare_output_pdb
-        prepare_func(os.path.join(pred_pre, model), os.path.join(prefix, model))
-    cal_all_pdbs(all_metric_path, pred_pre, gt_pre, models, missing_fill=False)
