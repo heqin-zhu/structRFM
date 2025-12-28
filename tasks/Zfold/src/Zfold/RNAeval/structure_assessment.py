@@ -1,6 +1,9 @@
-### Additional evaluation    
+import os
+import re
 
-## #1
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 def stereochemical(pdb_path):
     ''' stereochemical quality
     # https://sw-tools.rcsb.org/apps/MAXIT/source.html
@@ -8,15 +11,24 @@ def stereochemical(pdb_path):
     # cd maxit-v10-linux64
     # chmod +x maxit
     # export PATH=$PWD:$PATH
+    update maxit/src/Ndb2Pdb_Remark_500s_Util.C
     '''
-    cache_dir = '.RNAeval_cache'
+    maxit_dir = f'{FILE_DIR}/tools/maxit-v10.200-prod-src'
+    os.environ['RCSBROOT'] = maxit_dir
+    cache_dir = '.maxit_cache'
     os.makedirs(cache_dir, exist_ok=True)
+
     out_path = os.path.join(cache_dir, os.path.basename(pdb_path)+'.maxit.txt')
-    err_path = os.path.join(cache_dir, os.path.basename(pdb_path)+'.maxit.err')
-    os.system(f'maxit -input {pdb_path} > {out_path} 2> {err_Path}')
-    os.system(f"grep -Ei 'close|bond length|bond angle|planar|chirality|polymer' {out_path}")
-    raise NotImplementedError
-    return 
+    out_pdb = os.path.join(cache_dir, os.path.basename(pdb_path)+'.pdb')
+    log_path = os.path.join(cache_dir, os.path.basename(pdb_path)+'.maxit.log')
+    CMD = f'{maxit_dir}/bin/process_entry -input {pdb_path} -input_format pdb -output {out_pdb} -output_format pdb -log {log_path} 2> {out_path}'
+    os.system(CMD)
+    pattern = r'\[STEREOCHEM SUMMARY\] close=(?P<close>\d+) bond length=(?P<bond_length>\d+) bond angle=(?P<bond_angle>\d+) planar=(?P<planar>\d+) chirality=(?P<chirality>\d+) polymer=(?P<polymer>\d+)'
+    keys = ['close', 'bond_length', 'bond_angle', 'planar', 'chirality', 'polymer']
+    with open(out_path) as fp:
+        text = fp.read()
+        for tup in re.findall(pattern, text):
+            return {k: v for k, v in zip(keys, tup)}
 
 
 def knot_artifact(pdb_path, ntrials=200):
@@ -36,3 +48,10 @@ def entanglement():
     # RNA 3D structure entanglement
     # https://www.cs.put.poznan.pl/mantczak/spider.zip
     raise NotImplementedError
+
+
+if __name__ == '__main__':
+    pdb_path = '../structRFM_labs/RNAeval_results/structRFM/CASP16/R1260.pdb'
+    pdb_path = '/public/share/heqinzhu_share/structRFM/Zfold_test_data/CASP16/pdb/R1203.pdb'
+    ret = stereochemical(pdb_path)
+    print(ret)

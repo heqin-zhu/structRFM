@@ -387,7 +387,7 @@ def cal_all_metrics(pred_pdb, gt_pdb, eval_SS=True, missing_fill=False):
         m_dic['MCC'] = SS_metric_dic['MCC']
         m_dic['gt_dbn'] = gt_dbn
         m_dic['pred_dbn'] = pred_dbn
-        m_dic['DI'] = m_dic['RMSD']/m_dic['INF'] if m_dic['INF']!=0 else m_dic['RMSD']/0.1
+        m_dic['DI'] = m_dic['RMSD']/m_dic['INF'] if m_dic['INF']!=0 else m_dic['RMSD']/0.5
 
         print(m_dic)
     return m_dic
