@@ -1,4 +1,4 @@
-import os.path as osp
+import os
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ class SeqClsDataset(Dataset):
         self.tokenizer = tokenizer
 
         file_name = "train.fa" if train else "test.fa"
-        fasta = osp.join(osp.join(fasta_dir, prefix), file_name)
+        fasta = os.path.join(fasta_dir, prefix, file_name)
         records = list(SeqIO.parse(fasta, "fasta"))
         self.data = [(str(x.seq), *x.description.split(" ")[0:2]) for x in records]
         if max_seq_len is not None:
@@ -48,7 +48,7 @@ class GenerateRRInterTrainTest:
                  dataset,
                  split=0.8,
                  seed=0):
-        csv_path = osp.join(rr_dir, dataset) + ".csv"
+        csv_path = os.path.join(rr_dir, dataset) + ".csv"
         self.data = pd.read_csv(csv_path, sep=",").values.tolist()
 
         self.split_index = int(len(self.data) * split)
@@ -93,23 +93,20 @@ def bpseq2dotbracket(bpseq):
 
 
 class BPseqDataset(Dataset):
-
-    def __init__(self, data_root, bpseq_list):
+    def __init__(self, data_dir):
         super().__init__()
-        self.data_root = data_root
-        with open(bpseq_list) as f:
-            self.file_path = f.readlines()
-            self.file_path = [x.replace("\n", "") for x in self.file_path]
+        self.data_dir = data_dir
+        self.file_names = [f for f in os.listdir(self.data_dir)]
 
     def __len__(self):
-        return len(self.file_path)
+        return len(self.file_names)
 
     def __getitem__(self, idx):
-        file_path = osp.join(self.data_root, self.file_path[idx])
+        file_path = os.path.join(self.data_dir, self.file_names[idx])
         return self.load_bpseq(file_path)
 
-    def load_bpseq(self, filename):
-        with open(filename) as f:
+    def load_bpseq(self, file_path):
+        with open(file_path) as f:
             p = [0]
             s = ['']
             for line in f:
@@ -118,6 +115,5 @@ class BPseqDataset(Dataset):
                 idx, pair = int(idx), int(pair)
                 s.append(c)
                 p.append(pair)
-
         seq = ''.join(s)
-        return {"name": filename, "seq": seq, "pairs": np.array(p)}
+        return {"name": file_path, "seq": seq, "pairs": np.array(p)}

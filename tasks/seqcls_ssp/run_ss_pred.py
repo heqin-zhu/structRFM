@@ -31,7 +31,15 @@ from multimolecule import RnaTokenizer, RiNALMoModel
 
 # ========== Define constants
 MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'structRFM-2048', 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', 'evo2']
-TASKS = ["RNAStrAlign", "bpRNA1m", 'Rfam14.10-15.0_RNAStrAlign', 'Rfam14.10-15.0_bpRNA1m']
+DATASETS = {
+    "RNAStrAlign": ("RNAStrAlign_bpseq", "archiveII_bpseq"),
+    "bpRNA1m": ("TR0", "TS0"),
+    "Rfam14.10-15.0_RNAStrAlign": ("RNAStrAlign_bpseq", "Rfam14.10-15.0"),
+    "Rfam14.10-15.0_bpRNA1m": ("TR0", "Rfam14.10-15.0"),
+    "RNA3d_bpRNA1m": ("TR0", "RNA3d"),
+    "RNA3d_RNAStrAlign": ("RNAStrAlign_bpseq", "RNA3d"),
+}
+
 MAX_SEQ_LEN = {"RNABERT": 440,
                "RNAMSM": 1024,
                "RNAFM": 1024,
@@ -53,13 +61,6 @@ EMBED_DIMS = {
               "RiNALMo-Giga": 1280,
               'evo2': 512,
              }
-DATASETS = {
-    "RNAStrAlign": ("RNAStrAlign600.lst", "archiveII600.lst"),
-    "bpRNA1m": ("TR0.lst", "TS0.lst"),
-    "Rfam14.10-15.0_RNAStrAlign": ("RNAStrAlign600.lst", "Rfam14.10-15.0.lst"),
-    "Rfam14.10-15.0_bpRNA1m": ("TR0.lst", "Rfam14.10-15.0.lst"),
-}
-
 def get_args():
     # ========== Configuration
     parser = argparse.ArgumentParser(
@@ -77,7 +78,7 @@ def get_args():
     parser.add_argument('--max_seq_len', type=int, default=0)
     # data args
     parser.add_argument('--task_name', type=str, default="RNAStrAlign",
-                        choices=TASKS, help='Task name of training data.')
+                        choices=DATASETS, help='Task name of training data.')
     parser.add_argument('--dataloader_num_workers', type=int,
                         default=0, help='The number of threads used by dataloader.')
     parser.add_argument('--dataloader_drop_last', type=str2bool,
@@ -140,9 +141,6 @@ if __name__ == "__main__":
     # ========== post process
     if args.max_seq_len == 0:
         args.max_seq_len = MAX_SEQ_LEN[args.model_name]
-    args.dataset_train = osp.join(args.dataset_dir, DATASETS[args.task_name][0])
-    args.dataset_test = osp.join(args.dataset_dir, DATASETS[args.task_name][1])
-
     # ========== args check
     assert args.replace_T ^ args.replace_U, "Only replace T or U."
 
@@ -253,8 +251,8 @@ if __name__ == "__main__":
     _loss_fn = _loss_fn.to(args.device)
 
     # ========== Prepare data
-    train_dataset = BPseqDataset(args.dataset_dir, args.dataset_train)
-    test_dataset = BPseqDataset(args.dataset_dir, args.dataset_test)
+    train_dataset = BPseqDataset(osp.join(args.dataset_dir, DATASETS[args.task_name][0]))
+    test_dataset = BPseqDataset(osp.join(args.dataset_dir, DATASETS[args.task_name][1]))
 
     # ========== Create the data collator
     _collate_fn = SspCollator(max_seq_len=args.max_seq_len,

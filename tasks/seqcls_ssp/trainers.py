@@ -282,7 +282,10 @@ class SspTrainer(BaseTrainer):
                     for header, seq, ref, sc, pred, bp in zip(headers, seqs, refs, scs, preds, bps):
                         x = compare_bpseq(ref, bp)
                         ret = self.compute_metrics(*x)
-                        res['name'].append(os.path.basename(header))
+                        name = os.path.basename(header)
+                        if any(name.endswith(suf) for suf in ['.bpseq', '.ct', '.dbn']):
+                            name = name[:name.rfind('.')]
+                        res['name'].append(name)
                         for k, v in ret.items():
                             res[k].append(v)
 

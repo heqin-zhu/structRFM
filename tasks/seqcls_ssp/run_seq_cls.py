@@ -24,7 +24,8 @@ from multimolecule import RnaTokenizer, RiNALMoModel
 
 
 from run_ss_pred import MAX_SEQ_LEN, EMBED_DIMS, MODELS
-TASKS = ["nRC", "lncRNA_H", "lncRNA_M", 'IRES']
+
+
 LABEL2ID = {
     "nRC": {
         "5S_rRNA": 0,
@@ -71,7 +72,7 @@ def get_args():
     parser.add_argument('--LM_path', type=str)
     parser.add_argument('--config_path', type=str,default="./configs/")
     parser.add_argument('--dataset_dir', type=str, default="./data/seq_cls")
-    parser.add_argument('--dataset', type=str, default="nRC", choices=TASKS)
+    parser.add_argument('--dataset', type=str, default="nRC", choices=LABEL2ID)
     parser.add_argument('--replace_T', type=bool, default=True)
     parser.add_argument('--replace_U', type=bool, default=False)
 
