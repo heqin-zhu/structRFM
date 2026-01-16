@@ -1,52 +1,32 @@
-<p align="center">
+<div align="center">
 
-  <h1 align="center">A fully open structure-guided RNA foundation model for robust structural and functional inference</h1>
+  <h1 align="center">structRFM: Structure-guided RNA Foundation Model</h1>
+
   <p align="center">
-    <a href="https://heqin-zhu.github.io/"><strong>Heqin Zhu</strong></a>
-    ·
-    <a href="https://scholar.google.com/citations?user=9h_K8BoAAAAJ"><strong>Ruifeng Li</strong></a>
-    ·
-    <strong>Feng Zhang</strong>
-    ·
-    <a href="https://fenghetan9.github.io/"><strong>Fenghe Tang</strong></a><br>
-    <strong>Tong Ye</strong>
-    ·
-    <strong>Xin Li</strong>
-    ·
-    <strong>Yunjie Gu</strong>
-    ·
-    <a href="https://bme.ustc.edu.cn/2023/0322/c28131a596069/page.htm"><strong>Peng Xiong*</strong></a>
-    ·
-    <a href="https://scholar.google.com/citations?user=8eNm2GMAAAAJ"><strong>S. Kevin Zhou*</strong></a>
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/) [![PyTorch](https://img.shields.io/badge/PyTorch-2.0.1-ee4c2c.svg)](https://pytorch.org/)
   </p>
-  <h2 align="center">Submitted</h2>
+
   <p align="center">
     <a href="https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731">bioRxiv</a> |
     <a href="https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731.full.pdf">PDF</a> |
     <a href="https://github.com/heqin-zhu/structRFM">GitHub</a> |
     <a href="https://pypi.org/project/structRFM">PyPI</a>
   </p>
-  <div align="center">
-    <img src="images/Fig1.png", width="800">
-  </div>
-</p>
-
+</div>
 
 <!-- vim-markdown-toc GFM -->
 
 * [Overview](#overview)
-    * [Abstract](#abstract)
-    * [Key Achievements](#key-achievements)
-* [Installation](#installation)
-    * [Requirements](#requirements)
-    * [Instructions](#instructions)
-* [Usage](#usage)
-    * [Extract RNA sequence features](#extract-rna-sequence-features)
-    * [Build structRFM for finetuning](#build-structrfm-for-finetuning)
-* [Pretraining](#pretraining)
-    * [Download sequence-structure dataset](#download-sequence-structure-dataset)
-    * [Run pretraining](#run-pretraining)
-* [Downstream Tasks](#downstream-tasks)
+* [Key Features](#key-features)
+* [Quick Start](#quick-start)
+    * [AutoModel and AutoTokenizer](#automodel-and-autotokenizer)
+    * [Mannually Usage](#mannually-usage)
+        * [Extracting Features](#extracting-features)
+        * [Building Model and Tokenizer](#building-model-and-tokenizer)
+    * [Pre-training and Fine-tuning](#pre-training-and-fine-tuning)
+        * [Download sequence-structure dataset](#download-sequence-structure-dataset)
+        * [Run Pre-training](#run-pre-training)
+    * [Downstream Tasks Fine-tuning](#downstream-tasks-fine-tuning)
 * [Acknowledgement](#acknowledgement)
 * [LICENSE](#license)
 * [Citation](#citation)
@@ -54,32 +34,78 @@
 <!-- vim-markdown-toc -->
 
 ## Overview
-### Abstract
-RNA language models have achieved strong performance across diverse downstream tasks by leveraging large-scale sequence data. However, RNA function is fundamentally shaped by its hierarchical structure, making the integration of structural information into pretraining essential. Existing methods often depend on noisy structural annotations or introduce task-specific biases, limiting model generalizability. Here, we introduce structRFM, a structure-guided RNA foundation model that is pretrained by implicitly incorporating large-scale base pairing interactions and sequence data via a dynamic masking ratio to balance nucleotide-level and structure-level masking. structRFM learns joint knowledge of sequential and structural data, producing versatile representations-including classification-level, sequence-level, and pairwise matrix features-that support broad downstream adaptations. structRFM ranks top models in zero-shot homology classification across fifteen biological language models, and sets new benchmarks for secondary structure prediction, achieving F1 scores of 0.873 on ArchiveII and 0.641 on bpRNA-TS0 dataset. structRFM further enables robust and reliable tertiary structure prediction, with consistent improvements in both 3D accuracy and extracted 2D structures. In functional tasks such as internal ribosome entry site identification, structRFM achieves a 49% performance gain. These results demonstrate the effectiveness of structure-guided pretraining and highlight a promising direction for developing multi-modal RNA language models in computational biology.
+structRFM is a **fully open-source** structure-guided RNA foundation model that integrates sequence and structural knowledge through innovative pre-training strategies. By leveraging 21 million sequence-structure pairs and a novel Structure-guided Masked Language Modeling (SgMLM) approach, structRFM achieves state-of-the-art performance across a broad spectrum of RNA structural and functional inference tasks, setting new benchmarks for reliability and generalizability.
 
-### Key Achievements
-- **Zero-shot homology classification**: Top-ranked among 15 biological language models.
-- **Secondary structure prediction**: Sets new state-of-the-art performances.
-- **Tertiary structure prediction**: Derived method **Zfold** improves RNA Puzzles accuracy by **19%** over AlphaFold3.
-- **Functional inference**: Boosts F1 score by **49%** on IRES identification.
+<div align="center">
+<img src="images/Fig1.png", width="800">
+<sub>Figure: Overview of architecture and downstream applications</sub>
+</div>
 
-## Installation
-### Requirements
-- python3.8+
-- anaconda
+## Key Features
+- **Structure-Guided Pre-Training**: SgMLM strategy dynamically balances sequence-level and structure-level masking, capturing base-pair interactions without task-specific biases.
+- **Multi-Source Structure Ensemble**: MUSES (Multi-source ensemble of secondary structures) integrates thermodynamics-based, probability-based, and deep learning-based predictors to mitigate annotation biases.
+- **Versatile Feature Output**: Generates classification-level, sequence-level, and pairwise matrix features to support sequence-wise, nucleotide-wise, and structure-wise tasks.
+- **State-of-the-Art Performance**: Archieves state-of-the-art performances on zero-shot, secondary structure prediction, tertiary structure prediction, function prediction tasks.
+- **Zero-Shot Capability**: Ranks top 4 in zero-shot homology classification across Rfam and ArchiveII datasets, with strong secondary structure prediction without labeled data.
+- **Long RNA Handling**: Overlapping sliding window strategy enables high-accuracy classification of long non-coding RNAs (lncRNAs) up to 3,000 nt.
+- **Fully Open Resources**: 21M sequence-structure dataset, pre-trained models, and fine-tuned checkpoints are publicly available for the research community.
 
-### Instructions
-0. Clone this repo.
-```shell
-git clone https://github.com/heqin-zhu/structRFM.git
-cd structRFM
+## Quick Start
+### AutoModel and AutoTokenizer
+Install package: `pip install transformers`
+
+```python
+import os
+
+from transformers import AutoModel, AutoTokenizer
+
+model_path = 'heqin-zhu/structRFM'
+# model_path = os.getenv('structRFM_checkpoint')
+
+model = AutoModel.from_pretrained(model_path)
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+# single sequence
+seq = 'GUCCCAACUCUUGCGGGGAGGGAU'
+inputs = tokenizer(seq, return_tensors="pt")
+outputs = model(**inputs)
+print('>>> single seq, length:', len(seq))
+for k, v in outputs.items():
+    print(k, v.shape)
+print(outputs.last_hidden_state.shape)
+
+# batch mode
+seqs = ["GUCCCAA", 'AGUGUUG', 'AUGUAGUTCUN']
+inputs = tokenizer(
+             seqs,
+             add_special_tokens=True,
+             max_length=512,
+             padding='max_length',
+             truncation=True,
+             return_tensors='pt'
+        )
+outputs = model(**inputs) # note that the output sequential features are padded to max-length
+print('>>> batch seqs, batch:', len(seqs))
+for k, v in outputs.items():
+    print(k, v.shape)
+
+'''
+>>> single seq, length: 24
+last_hidden_state torch.Size([1, 24, 768])
+pooler_output torch.Size([1, 768])
+torch.Size([1, 24, 768])
+>>> batch seqs, batch: 3
+last_hidden_state torch.Size([3, 512, 768])
+pooler_output torch.Size([3, 768])
+'''
 ```
-1. Create and activate conda environment.
+
+### Mannually Usage
+1. Install packages
 ```shell
-conda env create -f structRFM_environment.yaml
-conda activate structRFM
+pip install transformers structRFM BPfold
 ```
-2. Download and decompress pretrained structRFM (305 MB).
+2. Download and decompress pretrained structRFM (~300 MB).
 ```shell
 wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
 tar -xzf structRFM_checkpoint.tar.gz
@@ -89,8 +115,7 @@ tar -xzf structRFM_checkpoint.tar.gz
 export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent setting
 ```
 
-## Usage
-### Extract RNA sequence features
+#### Extracting Features
 ```python
 import os
 
@@ -115,7 +140,7 @@ mat_feat torch.Size([11, 11])
 '''
 ```
 
-### Build structRFM for finetuning
+#### Building Model and Tokenizer
 ```python3
 import os
 
@@ -128,11 +153,43 @@ tokenizer = get_mlm_tokenizer(max_length=514)
 model = get_structRFM(dim=768, layer=12, num_attention_heads=12, from_pretrained=from_pretrained, pretrained_length=None, max_length=514, tokenizer=tokenizer)
 ```
 
-## Pretraining
-### Download sequence-structure dataset
+### Pre-training and Fine-tuning
+**Requirements**
+- python3.8+
+- anaconda
+
+**Installation**
+0. Clone GitHub repo.
+```shell
+git clone https://github.com/heqin-zhu/structRFM.git
+cd structRFM
+```
+1. Create and activate conda environment.
+```shell
+conda env create -f structRFM_environment.yaml
+conda activate structRFM
+```
+2. Download and decompress pretrained structRFM (~300 MB).
+```shell
+wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
+tar -xzf structRFM_checkpoint.tar.gz
+```
+3. Set environment varible `structRFM_checkpoint`.
+```shell
+export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent setting
+```
+
+#### Download sequence-structure dataset
 The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Zenodo](https://doi.org/10.5281/zenodo.16754363) (4.5 GB).
 
-### Run pretraining
+Or use huggingface to load datasets:
+```python
+# pip install datasets
+from datasets import load_dataset
+dataset = load_dataset("heqin-zhu/structRFM-dataset")
+```
+
+#### Run Pre-training
 - Modify variables `USER_DIR` and `PROGRAM_DIR` in `scripts/run.sh`,
 - Specify `DATA_PATH` and `run_name` in the following command,
 
@@ -143,7 +200,7 @@ bash scripts/run.sh --batch_size 96 --epoch 100 --lr 0.0001 --tag mlm --mlm_stru
 
 For more information, run `python3 main.py -h`.
 
-## Downstream Tasks
+### Downstream Tasks Fine-tuning
 Download all data (3.7 GB) and checkpoints (2.2 GB) from [Zenodo](https://doi.org/10.5281/zenodo.16754363), and then place them into corresponding folder of each task.
 
 - Zero-shot inference
