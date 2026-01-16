@@ -38,6 +38,8 @@ DATASETS = {
     "Rfam14.10-15.0_bpRNA1m": ("TR0", "Rfam14.10-15.0"),
     "RNA3d_bpRNA1m": ("TR0", "RNA3d"),
     "RNA3d_RNAStrAlign": ("RNAStrAlign_bpseq", "RNA3d"),
+    "RNA3d-MSAseq_bpRNA1m": ("TR0", "RNA3d-MSAseq"),
+    "RNA3d-MSAseq_RNAStrAlign": ("RNAStrAlign_bpseq", "RNA3d-MSAseq"),
 }
 
 MAX_SEQ_LEN = {"RNABERT": 440,

@@ -95,14 +95,17 @@ def bpseq2dotbracket(bpseq):
 class BPseqDataset(Dataset):
     def __init__(self, data_dir):
         super().__init__()
-        self.data_dir = data_dir
-        self.file_names = [f for f in os.listdir(self.data_dir)]
+        self.file_paths = []
+        for pre, ds, fs in os.walk(data_dir):
+            for f in fs:
+                if any(f.endswith(suf) for suf in ['.ct', '.bpseq']):
+                    self.file_paths.append(os.path.join(pre, f))
 
     def __len__(self):
-        return len(self.file_names)
+        return len(self.file_paths)
 
     def __getitem__(self, idx):
-        file_path = os.path.join(self.data_dir, self.file_names[idx])
+        file_path = self.file_paths[idx]
         return self.load_bpseq(file_path)
 
     def load_bpseq(self, file_path):
