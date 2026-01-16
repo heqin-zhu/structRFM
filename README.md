@@ -2,9 +2,11 @@
 
   <h1 align="center">structRFM: Structure-guided RNA Foundation Model</h1>
 
-  <p align="center">
+  <div align="center">
+
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/) [![PyTorch](https://img.shields.io/badge/PyTorch-2.0.1-ee4c2c.svg)](https://pytorch.org/)
-  </p>
+
+  </div>
 
   <p align="center">
     <a href="https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731">bioRxiv</a> |
