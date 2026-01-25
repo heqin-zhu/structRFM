@@ -21,14 +21,18 @@
 * [Overview](#overview)
 * [Key Features](#key-features)
 * [Quick Start](#quick-start)
-    * [AutoModel and AutoTokenizer](#automodel-and-autotokenizer)
-    * [Mannually Usage](#mannually-usage)
-        * [Extracting Features](#extracting-features)
-        * [Building Model and Tokenizer](#building-model-and-tokenizer)
+    * [Pre-trained Model](#pre-trained-model)
+        * [AutoModel and AutoTokenizer](#automodel-and-autotokenizer)
+        * [Preparation-1](#preparation-1)
+        * [Wrapped features](#wrapped-features)
+    * [Building Model and Tokenizer](#building-model-and-tokenizer)
     * [Pre-training and Fine-tuning](#pre-training-and-fine-tuning)
         * [Download sequence-structure dataset](#download-sequence-structure-dataset)
+        * [Preparation-2](#preparation-2)
         * [Run Pre-training](#run-pre-training)
-    * [Downstream Tasks Fine-tuning](#downstream-tasks-fine-tuning)
+        * [Run Fine-tuning](#run-fine-tuning)
+    * [structRFM Inference](#structrfm-inference)
+        * [structRFM for RNA secondary structure prediction](#structrfm-for-rna-secondary-structure-prediction)
 * [Acknowledgement](#acknowledgement)
 * [LICENSE](#license)
 * [Citation](#citation)
@@ -53,8 +57,10 @@ structRFM is a **fully open-source** structure-guided RNA foundation model that 
 - **Fully Open Resources**: 21M sequence-structure dataset, pre-trained models, and fine-tuned checkpoints are publicly available for the research community.
 
 ## Quick Start
-### AutoModel and AutoTokenizer
-Install package: `pip install transformers`
+
+### Pre-trained Model
+#### AutoModel and AutoTokenizer
+Requirements: `pip install transformers`
 
 ```python
 import os
@@ -102,7 +108,7 @@ pooler_output torch.Size([3, 768])
 '''
 ```
 
-### Mannually Usage
+#### Preparation-1
 1. Install packages
 ```shell
 pip install transformers structRFM BPfold
@@ -117,7 +123,10 @@ tar -xzf structRFM_checkpoint.tar.gz
 export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent setting
 ```
 
-#### Extracting Features
+#### Wrapped features
+Requirements: refer to [Preparation-1](#preparaiton-1)
+
+**Use structRFM\_infer to extract different features**.
 ```python
 import os
 
@@ -142,25 +151,35 @@ mat_feat torch.Size([11, 11])
 '''
 ```
 
-#### Building Model and Tokenizer
+### Building Model and Tokenizer
+Requirements: refer to [Preparation-1](#preparaiton-1)
+
 ```python3
 import os
 
 from structRFM.model import get_structRFM
 from structRFM.data import preprocess_and_load_dataset, get_mlm_tokenizer
 
-from_pretrained = os.getenv('structRFM_checkpoint')
+from_pretrained = os.getenv('structRFM_checkpoint') # None
 
 tokenizer = get_mlm_tokenizer(max_length=514)
 model = get_structRFM(dim=768, layer=12, num_attention_heads=12, from_pretrained=from_pretrained, pretrained_length=None, max_length=514, tokenizer=tokenizer)
 ```
 
 ### Pre-training and Fine-tuning
-**Requirements**
-- python3.8+
-- anaconda
+#### Download sequence-structure dataset
+The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Zenodo](https://doi.org/10.5281/zenodo.16754363) (4.5 GB).
 
-**Installation**
+Or use huggingface to load datasets (under construction):
+```python
+# pip install datasets
+from datasets import load_dataset
+dataset = load_dataset("heqin-zhu/structRFM-dataset")
+```
+
+#### Preparation-2
+**Prepare structRFM environment**
+
 0. Clone GitHub repo.
 ```shell
 git clone https://github.com/heqin-zhu/structRFM.git
@@ -170,25 +189,6 @@ cd structRFM
 ```shell
 conda env create -f structRFM_environment.yaml
 conda activate structRFM
-```
-2. Download and decompress pretrained structRFM (~300 MB).
-```shell
-wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_checkpoint.tar.gz
-tar -xzf structRFM_checkpoint.tar.gz
-```
-3. Set environment varible `structRFM_checkpoint`.
-```shell
-export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent setting
-```
-
-#### Download sequence-structure dataset
-The pretrianing sequence-structure dataset is constructed using RNAcentral and BPfold. We filter sequences with a length limited to 512, resulting about 21 millions sequence-structure paired data. It can be downloaded at [Zenodo](https://doi.org/10.5281/zenodo.16754363) (4.5 GB).
-
-Or use huggingface to load datasets:
-```python
-# pip install datasets
-from datasets import load_dataset
-dataset = load_dataset("heqin-zhu/structRFM-dataset")
 ```
 
 #### Run Pre-training
@@ -202,9 +202,11 @@ bash scripts/run.sh --batch_size 96 --epoch 100 --lr 0.0001 --tag mlm --mlm_stru
 
 For more information, run `python3 main.py -h`.
 
-### Downstream Tasks Fine-tuning
-Download all data (3.7 GB) and checkpoints (2.2 GB) from [Zenodo](https://doi.org/10.5281/zenodo.16754363), and then place them into corresponding folder of each task.
+#### Run Fine-tuning
+Requirements: refer to [Preparation-2](#preparaiton-2)
 
+Download all data (3.7 GB) and task-specific checkpoints from [Zenodo](https://doi.org/10.5281/zenodo.16754363), and then place them into corresponding folder of each task.
+ 
 - Zero-shot inference
     - [Zero-shot homology classfication](tasks/zeroshot)
     - [Zero-shot secondary structure prediction](tasks/zeroshot)
@@ -215,6 +217,29 @@ Download all data (3.7 GB) and checkpoints (2.2 GB) from [Zenodo](https://doi.or
     - [ncRNA classification](tasks/seqcls_ssp)
     - [Splice site prediction](tasks/splice_site_prediction)
     - [IRES identification](IRES)
+
+### structRFM Inference
+Requirements: refer to [Preparation-2](#preparaiton-2)
+#### structRFM for RNA secondary structure prediction
+
+Download one fine-tuned structRFM in releases, as the `CHECKPOINT_PATH`:
+```shell
+# Fine-tuned on bpRNA1m
+wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_SSP_bpRNA1m.pt
+
+# Fine-tuned on RNAStrAlign
+wget https://github.com/heqin-zhu/structRFM/releases/latest/download/structRFM_SSP_RNAStrAlign.pt
+
+# Fine-tuned on All datasets (TODO)
+```
+
+Specify `FASTA_PATH`(multi seq enabled), `CHECKPOINT_PATH`, and Run the following command
+```python
+python3 scripts/structRFM_SSP.py --gpu 0 --output_format bpseq --checkpoint_path CHECKPOINT_PATH --input_fasta FASTA_PATH --output_dir structRFM_SSP_results
+```
+>[!NOTE]
+>`--output_format`: out format of RNA secondary structures, can be `.csv`, `.bpseq`, `.ct`, or `.dbn`, default `.csv`
+
 
 ## Acknowledgement
 We appreciate the following open-source projects for their valuable contributions:
