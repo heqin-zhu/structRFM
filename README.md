@@ -124,7 +124,7 @@ export structRFM_checkpoint=PATH_TO_CHECKPOINT # modify ~/.bashrc for permanent 
 ```
 
 #### Wrapped features
-Requirements: refer to [Preparation-1](#preparaiton-1)
+Requirements: refer to [Preparation-1](#preparation-1)
 
 **Use structRFM\_infer to extract different features**.
 ```python
@@ -152,7 +152,7 @@ mat_feat torch.Size([11, 11])
 ```
 
 ### Building Model and Tokenizer
-Requirements: refer to [Preparation-1](#preparaiton-1)
+Requirements: refer to [Preparation-1](#preparation-1)
 
 ```python3
 import os
@@ -203,7 +203,7 @@ bash scripts/run.sh --batch_size 96 --epoch 100 --lr 0.0001 --tag mlm --mlm_stru
 For more information, run `python3 main.py -h`.
 
 #### Run Fine-tuning
-Requirements: refer to [Preparation-2](#preparaiton-2)
+Requirements: refer to [Preparation-2](#preparation-2)
 
 Download all data (3.7 GB) and task-specific checkpoints from [Zenodo](https://doi.org/10.5281/zenodo.16754363), and then place them into corresponding folder of each task.
  
@@ -219,7 +219,7 @@ Download all data (3.7 GB) and task-specific checkpoints from [Zenodo](https://d
     - [IRES identification](IRES)
 
 ### structRFM Inference
-Requirements: refer to [Preparation-2](#preparaiton-2)
+Requirements: refer to [Preparation-2](#preparation-2)
 #### structRFM for RNA secondary structure prediction
 
 Download one fine-tuned structRFM in releases, as the `CHECKPOINT_PATH`:
@@ -238,7 +238,7 @@ Specify `FASTA_PATH`(multi seq enabled), `CHECKPOINT_PATH`, and Run the followin
 python3 scripts/structRFM_SSP.py --gpu 0 --output_format bpseq --checkpoint_path CHECKPOINT_PATH --input_fasta FASTA_PATH --output_dir structRFM_SSP_results
 ```
 >[!NOTE]
->`--output_format`: out format of RNA secondary structures, can be `.csv`, `.bpseq`, `.ct`, or `.dbn`, default `.csv`
+>`--output_format`: out format of RNA secondary structures, can be `csv`, `bpseq`, `ct`, or `dbn`, default `bpseq`
 
 
 ## Acknowledgement
