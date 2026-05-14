@@ -23,7 +23,7 @@ import re
 import os
 
 # !!! IMPORTANT, please set the directory of MC-Annotate before using this script.
-file_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+file_dir = os.path.dirname(os.path.abspath(__file__))
 MCAnnotate_bin=f'{file_dir}/MC-Annotate'
 
 class MCAnnotate:
@@ -156,6 +156,48 @@ class MCAnnotate:
             
         return( "STACK", chain_a, pos_a, "", chain_b, pos_b, "", int_type, "", "" )
     
+
+class MCStruct:
+    def __init__(self, pdb_path, cache_dir='.MCAnno'):
+        self._pdb_file = pdb_path
+        os.makedirs(cache_dir, exist_ok=True)
+        self._load_annotations_3D()
+
+    def _load_annotations_3D(self):
+        self._interactions = []
+        mca = MCAnnotate()
+        mca.load( self._pdb_file, os.path.dirname( self._pdb_file ) )
+        #~ print mca.interactions
+        for (type, chain_a, pos_a, nt_a, chain_b, pos_b, nt_b, extra1, extra2, extra3) in mca.interactions:
+            # get the rank of the first position of the pair
+            rank_a = self._get_index( chain_a, pos_a, 1 )
+            rank_b = self._get_index( chain_b, pos_b, 1 )
+
+            if( (rank_a is None) or (rank_b is None) ):
+                continue
+            #~ return False
+
+            if( type == "STACK" ):
+                extra = extra1
+            else:
+                extra = "%s%s" %(extra1, extra2)
+            self._interactions.append( (type, min( rank_a, rank_b ), max( rank_a, rank_b ), extra ))
+
+
+    def get_interactions(self, anno_type="ALL"):
+        # ('PAIR_2D', 'A', 23, 'G', 'A', 27, 'C', 'WW', 'cis', '')
+        if( type == "ALL" ):
+            # "ALL": returns all interactions
+            return self._interactions
+        elif( type in ("PAIR") ):
+            # "PAIR": returns all pairs irrespective of their type
+            return list(filter( lambda x: x[0] in ("PAIR_2D", "PAIR_3D"), self._interactions ))
+        elif( type in ("PAIR_2D", "PAIR_3D", "STACK") ):
+            # "PAIR_2D", "PAIR_3D", "STAK": returns the interactions of the specified type
+            return list(filter( lambda x: x[0] == type, self._interactions ))
+        else:
+            raise Exception(f'Unknown anno_type: {anno_type}')
+
 
 if __name__ == '__main__':
     pdb_dir = '/public/share/heqinzhu_share/structRFM/RNA3d_eval/pred/20_RNA_Puzzles/'
