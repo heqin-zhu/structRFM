@@ -1,3 +1,7 @@
+import os
+
+import pandas as pd
+
 from src.Zfold.RNAeval.RNAeval import iter_pred_gt_model_dataset, prepare_af3_pred, prepare_output_pdb, cal_all_metrics
 from src.Zfold.RNAeval.RNA_assessment import InteractionNetworkFidelity as INF
 
@@ -7,7 +11,7 @@ if __name__ == '__main__':
     metric_names = ['RMSD', 'eRMSD', 'DI', 'INF']
     prefix = 'output'
     pred_pre = os.path.join(prefix, 'pred_results')
-    gt_pre = '/public/share/heqinzhu_share/structRFM/rna3d_vis/native'
+    gt_pre = '/public/share/heqinzhu_share/structRFM/Zfold_test_data/'
     out_name = 'RNA3d_metrics.csv'
     all_metric_path =  f'all_{out_name}'
 
