@@ -277,7 +277,7 @@ class MSADataset(Dataset):
 
     def get_matrix_feature(self, seq, name, crop=None):
         if self.LM_name == 'structRFM':
-            feat_dic = self.LM.extract_feature(seq, is_training=not self.freeze_LM)
+            feat_dic = self.LM.extract_feature(seq, is_training=self.LM.model.training)
             if self.use_attn_feat:
                 return feat_dic['last_mean_attn_feat']
             else:

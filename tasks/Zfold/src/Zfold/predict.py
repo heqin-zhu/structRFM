@@ -253,6 +253,8 @@ if __name__ == '__main__':
     else:
         raise Exception(f'Unknown LM: {args.LM_name}')
     model.eval()
+    if LM is not None:
+        (LM.model if args.LM_name == 'structRFM' else LM).eval()
     pred = predict(model, fname, seq, msa, ss, window=args.window, LM=LM, stru_feat_type=args.stru_feat_type, use_outer_product_mean=args.use_outer_product_mean)
 
     for k, v in pred.items():

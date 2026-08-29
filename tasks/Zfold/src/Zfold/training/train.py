@@ -80,6 +80,8 @@ group.add_argument('-warning', '--warning',
 
 def train(dataloader, is_training=False, msa_cutoff=300):
     model.train(is_training)
+    if args.LM_name != 'evo2':
+        (LM.model if args.LM_name == 'structRFM' else LM).train(is_training and not args.freeze_LM)
     for param in model.parameters():
         param.requires_grad = is_training
 
