@@ -165,13 +165,15 @@ class RRDataCollator(BaseCollator):
 
 
 class SspCollator(BaseCollator):
-    def __init__(self, max_seq_len, tokenizer, replace_T=True, replace_U=False, model_name='structRFM'):
+    def __init__(self, max_seq_len, tokenizer, replace_T=True, replace_U=False,
+                 model_name='structRFM', normalize_ssp_sequence=True):
         super(SspCollator, self).__init__()
         self.max_seq_len = max_seq_len
         self.tokenizer = tokenizer
         self.replace_T = replace_T
         self.replace_U = replace_U
         self.model_name = model_name
+        self.normalize_ssp_sequence = normalize_ssp_sequence
 
     def process_input(self, seq):
         if self.model_name == 'structRFM':
@@ -185,11 +187,15 @@ class SspCollator(BaseCollator):
     def __call__(self, raw_data_b):
         raw_data = raw_data_b[0]
         name_stack = [raw_data["name"] if "name" in raw_data else None]
-        seq_stack = [raw_data["seq"]]
-        seq_stack = [x[:self.max_seq_len-1] for x in seq_stack]
-
-        input_seqs = raw_data["seq"].upper()
+        raw_seq = raw_data["seq"].upper()
+        input_seqs = raw_seq
         input_seqs = input_seqs.replace("T", "U") if self.replace_T else input_seqs.replace("U", "T")
+        # The language-model and folding branches must see the same alphabet.
+        # Previously only the LM input was normalized.  A T-containing input
+        # therefore used U in structRFM but T in SparseEmbedding, unlike the
+        # U-containing BPSEQ training data.
+        ssp_seq = input_seqs if self.normalize_ssp_sequence else raw_seq
+        seq_stack = [ssp_seq[:self.max_seq_len-1]]
         kmer_text = self.process_input(input_seqs)
         input_ids_stack = self.tokenizer(kmer_text)["input_ids"]
         input_ids_stack = input_ids_stack[:self.max_seq_len]
@@ -197,7 +203,12 @@ class SspCollator(BaseCollator):
             # replace all None with 0
             input_ids_stack = [0 if x is None else x for x in input_ids_stack]
         labels_stack = raw_data["pairs"] if "pairs" in raw_data else None
-        labels_stack = labels_stack[:self.max_seq_len]
+        if labels_stack is not None:
+            labels_stack = labels_stack[:self.max_seq_len].copy()
+            # Pair indices are 1-based.  When a long sequence is truncated,
+            # bases paired to a removed suffix must become unpaired rather
+            # than dangling references outside the evaluated sequence.
+            labels_stack[labels_stack >= len(labels_stack)] = 0
         return {
             "names": name_stack,
             "seqs": seq_stack,

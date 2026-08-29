@@ -27,7 +27,11 @@ from trainers import SspTrainer
 from structRFM.model import get_structRFM, get_model_scale
 from structRFM.data import get_mlm_tokenizer
 
-from multimolecule import RnaTokenizer, RiNALMoModel
+try:
+    from multimolecule import RnaTokenizer, RiNALMoModel
+except ImportError:
+    # Keep structRFM-only SSP evaluation usable without optional baselines.
+    RnaTokenizer = RiNALMoModel = None
 
 # ========== Define constants
 MODELS = ["RNABERT", "RNAMSM", "RNAFM", "structRFM", 'structRFM-2048', 'RiNALMo-Micro', 'RiNALMo-Mega', 'RiNALMo-Giga', 'evo2']
@@ -178,6 +182,8 @@ if __name__ == "__main__":
         pretrained_model = RNAFmForSsp(pretrained_model)
         # pretrained_model._load_pretrained_bert(args.LM_path)
     elif args.model_name.lower().startswith('rinalmo'):
+        if RnaTokenizer is None:
+            raise ImportError("RiNALMo requires the optional 'multimolecule' package")
         tokenizer = RnaTokenizer.from_pretrained(f"multimolecule/{args.model_name.lower()}")
         pretrained_model = RiNALMoModel.from_pretrained(f"multimolecule/{args.model_name.lower()}")
         if args.freeze_base:

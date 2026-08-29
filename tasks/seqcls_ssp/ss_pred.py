@@ -7,7 +7,11 @@ import torch.nn.functional as F
 
 import interface
 
-from multimolecule import RnaTokenizer, RiNALMoModel
+try:
+    from multimolecule import RnaTokenizer, RiNALMoModel
+except ImportError:
+    # multimolecule is only required for the optional RiNALMo baselines.
+    RnaTokenizer = RiNALMoModel = None
 
 
 class SparseEmbedding(nn.Module):

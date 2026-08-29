@@ -55,11 +55,10 @@ class SSP_collator:
     def __call__(self, raw_data_b):
         raw_data = raw_data_b[0]
         name_stack = [raw_data["name"] if "name" in raw_data else None]
-        seq_stack = [raw_data["seq"]]
-        seq_stack = [x[:self.max_seq_len-1] for x in seq_stack]
-
         input_seqs = raw_data["seq"].upper()
         input_seqs = input_seqs.replace("T", "U") if self.replace_T else input_seqs.replace("U", "T")
+        # Keep the LM and folding branches on the same normalized alphabet.
+        seq_stack = [input_seqs[:self.max_seq_len-1]]
         kmer_text = self.process_input(input_seqs)
         input_ids_stack = self.tokenizer(kmer_text)["input_ids"]
         input_ids_stack = input_ids_stack[:self.max_seq_len]
@@ -110,7 +109,7 @@ def prepare_model(checkpoint_path):
     model = MixedFold(init_param=param_turner2004, **config)
 
     # load checkpoint
-    data = torch.load(checkpoint_path)
+    data = torch.load(checkpoint_path, map_location="cpu")
     if 'model' in data:
         model.load_state_dict(data['model'])
         if 'pretrained_model' in data:
@@ -134,6 +133,7 @@ def predict_SS(model, tokenizer, pretrained_model, fasta_path):
             shuffle=False,
         )
     model.eval()
+    pretrained_model.eval()
     n_dataset = len(test_dataloader.dataset)
     res = defaultdict(list)
     device = next(model.parameters()).device

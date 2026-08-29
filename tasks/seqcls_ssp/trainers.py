@@ -260,6 +260,7 @@ class SspTrainer(BaseTrainer):
 
     def eval(self, epoch=float('inf')):
         self.model.eval()
+        self.pretrained_model.eval()
         n_dataset = len(self.eval_dataloader.dataset)
         with tqdm(total=n_dataset) as pbar:
             # init with default values
@@ -294,7 +295,8 @@ class SspTrainer(BaseTrainer):
                 metrics_dataset[self.name_pbar] = avg_val
                 pbar.update(self.args.batch_size)
 
-            self.save_model(metrics_dataset, epoch)
+            if self.args.train:
+                self.save_model(metrics_dataset, epoch)
             df = pd.DataFrame(res)
             df.to_csv(os.path.join(self.args.output_dir, f'test_metric_{epoch}_{self.max_metric:.4f}.csv'), index=False)
             # log results to screen/bash
