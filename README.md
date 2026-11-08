@@ -257,14 +257,14 @@ We appreciate the following open-source projects for their valuable contribution
 If you find our work helpful, please cite our paper:
 
 ```bibtex
-@article {structRFM,
-    author = {Zhu, Heqin and Li, Ruifeng and Zhang, Feng and Tang, Fenghe and Ye, Tong and Li, Xin and Gu, Yujie and Xiong, Peng and Zhou, S Kevin},
-    title = {A fully-open structure-guided RNA foundation model for robust structural and functional inference},
-    elocation-id = {2025.08.06.668731},
-    year = {2025},
-    doi = {10.1101/2025.08.06.668731},
-    publisher = {Cold Spring Harbor Laboratory},
-    URL = {https://www.biorxiv.org/content/early/2025/08/07/2025.08.06.668731},
-    journal = {bioRxiv}
+@article{zhu2026open,
+  title={An open structure-guided RNA foundation model for generalizable prediction},
+  author={Zhu, Heqin and Li, Ruifeng and Chang, Ao and Chen, Haobin and Zhang, Feng and Tang, Fenghe and Ye, Tong and Li, Xin and Gu, Yunjie and Xiong, Peng and others},
+  journal={Nature},
+  pages={1--11},
+  year={2026},
+  doi = {10.1038/s41586-026-11210-2},
+  url = {https://doi.org/10.1038/s41586-026-11210-2},
+  publisher={Nature Publishing Group UK, London}
 }
 ```
