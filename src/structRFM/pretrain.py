@@ -100,30 +100,29 @@ def pretrain(args, tag):
     # DataCollatorWithPadding, DataCollatorForSeq2Seq, ForWholeWordMask
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm= tag=='mlm')
     print('MLM_structure:', args.mlm_structure)
-    total_steps = len(split_dataset['train'])//args.batch_size 
     if tag == 'mlm' and args.mlm_structure:
         # structure-directed masking
         data_collator = PretrainDataCollatorWithStructure(tokenizer=tokenizer, mlm=True, mlm_probability=args.mlm_probability)
 
     model_size = f'{args.dim}_{args.layer}'
-    step_interval = total_steps//10
+    # Trainer interprets fractional intervals as shares of the full run.
+    eval_save_ratio = 1 / (10 * max(args.epoch, 1))
     extra_training_args = {}
     training_args = TrainingArguments(
         output_dir=args.run_name,
         learning_rate=args.lr,
         num_train_epochs=args.epoch,
-        max_steps=total_steps*args.epoch,
         weight_decay=0., # TODO
         gradient_accumulation_steps=1, # if gpu memory is not enough, increase this
         per_device_train_batch_size=args.batch_size,
         warmup_steps=2_000, 
         max_grad_norm=1.0,
         logging_strategy="steps",
-        logging_steps=step_interval//10,
+        logging_steps=eval_save_ratio / 10,
         evaluation_strategy="steps",
-        eval_steps=step_interval,
+        eval_steps=eval_save_ratio,
         save_strategy="steps", 
-        save_steps=step_interval, 
+        save_steps=eval_save_ratio,
         load_best_model_at_end=True,
         metric_for_best_model='eval_loss', # TODO
         greater_is_better=False,
